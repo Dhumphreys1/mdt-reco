@@ -1,0 +1,11 @@
+
+
+Geometry:
+  multilayer1:
+    tdcType: "A"
+    radius: 15 #mm
+    length: 100 #mm
+    nTDCs: 2
+    material:
+      type: "Aluminum"
+      thickness: 0.4 #mm
