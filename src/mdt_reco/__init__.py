@@ -1,2 +1,5 @@
-def main() -> None:
-    print("Hello from mdt-reco!")
+from .ConfigParser import ConfigParser
+from .Geometry import Chamber
+
+configParser = ConfigParser
+geo = Chamber
