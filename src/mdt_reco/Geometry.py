@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+from matplotlib.collections import PatchCollection
 
 class Chamber:
     def __init__(self, config):
@@ -136,13 +137,14 @@ class Chamber:
         ymax = self.Chamber["y"].max()
         ymin = self.Chamber["y"].min()
         Ntubes = len(self.Chamber["x"])
+        patches = []
         for tube in range(Ntubes):
             ml_num = self.Chamber['ML'][tube]
             radius = self.config["multilayers"][f"multilayer{int(ml_num + 1)}"]["radius"]
             center = (self.Chamber["x"][tube], self.Chamber["y"][tube])
             if int(self.Chamber['tdc_id'][tube]/2)%2 == 1:
                 # Draw the tube as a filled circle
-                circle = Circle(center, radius, fill=True,facecolor='lightgrey', ec='black', lw=1)
+                circle = Circle(center, radius, fill=True, facecolor='lightgrey', ec='black', lw=1)
             else:
                 circle = Circle(center, radius, fill=False, ec='black', lw=1)
             if key is None:
@@ -151,7 +153,10 @@ class Chamber:
                 ax.text(center[0], center[1], self.Chamber["channel"][tube]%100, color='black', fontsize=10, ha='center', va='center')
             else:
                 ax.text(center[0], center[1], self.Chamber[key][tube], color='black', fontsize=10, ha='center', va='center')
-            ax.add_patch(circle)
+            # ax.add_patch(circle)
+            patches.append(circle)
+        collection = PatchCollection(patches, match_original=True)
+        ax.add_collection(collection)
         ax.set_xlim(xmin-radius*2, xmax + radius*2)
         ax.set_ylim(ymin-radius*2, ymax + radius*2)
 
