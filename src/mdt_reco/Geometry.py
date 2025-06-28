@@ -2,23 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-# TDC Type A is a generic TDC layout with 4 layers and 6 tubes per layer.
-
-tdcType436_Base = {
-    'x': np.zeros(24),
-    'y': np.zeros(24),
-    'tdc_id': np.zeros(24),
-    'channel': np.array([[3, 1, 5, 0, 2, 4],
-                         [9, 7, 11, 6, 8, 10],
-                         [15, 13, 17, 12, 14, 16],
-                         [19, 21, 23, 18, 20, 22]]).flatten(),
-    'layer': np.array([[0, 0, 0, 0, 0, 0],
-                        [1, 1, 1, 1, 1, 1],
-                        [2, 2, 2, 2, 2, 2],
-                        [3, 3, 3, 3, 3, 3]]).flatten(),
-}
-
-
 class Chamber:
     def __init__(self, config):
         self.config = config["Geometry"]
@@ -162,7 +145,7 @@ class Chamber:
                 circle = Circle(center, radius, fill=True,facecolor='lightgrey', ec='black', lw=1)
             else:
                 circle = Circle(center, radius, fill=False, ec='black', lw=1)
-            if key == None:
+            if key is None:
                 continue
             elif key == "channel":
                 ax.text(center[0], center[1], self.Chamber["channel"][tube]%100, color='black', fontsize=10, ha='center', va='center')
