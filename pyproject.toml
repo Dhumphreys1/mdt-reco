@@ -9,7 +9,12 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "numpy",
-    "matplotlib.pyplot",
+    "matplotlib",
+    "pyyaml"
+]
+
+[dependency-groups]
+dev = [
     ]
 
 [project.scripts]

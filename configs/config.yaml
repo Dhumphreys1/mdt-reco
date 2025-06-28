@@ -1,11 +1,25 @@
 
 
 Geometry:
-  multilayer1:
-    tdcType: "A"
-    radius: 15 #mm
-    length: 100 #mm
-    nTDCs: 2
-    material:
-      type: "Aluminum"
-      thickness: 0.4 #mm
+  multilayer_spacing: 85 #mm
+  multilayers:
+    multilayer1:
+      tdcType: "446"
+      radius: 15 #mm
+      length: 100 #mm
+      tube_spacing: .035 #mm
+      activeTDCs: [True, True, False, True]
+      TDC_ids: [0, 2, 4, 6]
+      material:
+        type: "Aluminum"
+        thickness: 0.4 #mm
+    multilayer2:
+      tdcType: "436"
+      radius: 15 #mm
+      length: 100 #mm
+      tube_spacing: .035 #mm
+      activeTDCs: [True, True, True, True]
+      TDC_ids: [1, 3, 5, 7]
+      material:
+        type: "Aluminum"
+        thickness: 0.4 #mm

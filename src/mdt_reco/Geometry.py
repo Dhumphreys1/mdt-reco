@@ -1,75 +1,178 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 
-MZ   MezzCh  locY      locZ     Layer  Tube_y ML
-0    105     45.7675   30.0175  1      1      1
-0    103     45.7675   60.0525  1      2      1
-0    104     45.7675   90.0875  1      3      1
-0    102     45.7675   120.122  1      4      1
-0    100     45.7675   150.157  1      5      1
-0    101     45.7675   180.192  1      6      1
+# TDC Type A is a generic TDC layout with 4 layers and 6 tubes per layer.
 
-0    111     71.7786   15.0     2      1      1
-0    109     71.7786   45.035   2      2      1
-0    110     71.7786   75.07    2      3      1
-0    108     71.7786   105.105  2      4      1
-0    106     71.7786   135.14   2      5      1
-0    107     71.7786   165.175  2      6      1
+tdcType436_Base = {
+    'x': np.zeros(24),
+    'y': np.zeros(24),
+    'tdc_id': np.zeros(24),
+    'channel': np.array([[3, 1, 5, 0, 2, 4],
+                         [9, 7, 11, 6, 8, 10],
+                         [15, 13, 17, 12, 14, 16],
+                         [19, 21, 23, 18, 20, 22]]).flatten(),
+    'layer': np.array([[0, 0, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1, 1],
+                        [2, 2, 2, 2, 2, 2],
+                        [3, 3, 3, 3, 3, 3]]).flatten(),
+}
 
-0    117     97.7896   30.0175  3      1      1
-0    115     97.7896   60.0525  3      2      1
-0    116     97.7896   90.0875  3      3      1
-0    114     97.7896   120.122  3      4      1
-0    112     97.7896   150.157  3      5      1
-0    113     97.7896   180.192  3      6      1
-
-0    123     123.801   15.0     4      1      1
-0    121     123.801   45.035   4      2      1
-0    122     123.801   75.07    4      3      1
-0    120     123.801   105.105  4      4      1
-0    118     123.801   135.14   4      5      1
-0    119     123.801   165.175  4      6      1
 
 class Chamber:
-    def __init__(self, chamber_type: str):
-        if chamber_type == 'sMDT':
-            self.radius = 7.5
-            self.layer_distance = 13.0769836
-        elif chamber_type == 'MDT':
-            self.radius = 15.0
-            self.layer_distance = 26.0111
-        self.BuildTdcs()
-    def BuildTdcs(self):
-        """
-        tdcTypeA and tdcTypeB are generic TDCs defined by 4 layers by 6 tubes.
-        Their x and y are coordinates depending on the radius of the chamber.
-        x (Float): The local x coordinate of the tube center.
-        y (Float): The local y coordinate of the tube center.
-        tdc_id (Int): The TDC ID, this is constant for all tubes
-        channel (Int): The channel number of the tube, this is the channel recorded by the TDC during digitization.
-        layer (Int): The layer number of the tube, this is constant for each row of tubes
-        ML (Int): Multilayer. Chambers typically have 2 multilayers, 1 multilayer is a row of TDCs. Effectively a TDC group.
-        """
-        tdcTypeA = {
-            'x': np.zeros(24),
-            'y': np.zeros(24),
-            'tdc_id': np.zeros(24),
-            'channel': np.zeros(24),
-            'layer': np.zeros(24),
-            'ML': np.zeros(24),
-        }
-        tdcTypeB = {
-            'x': np.zeros(24),
-            'y': np.zeros(24),
-            'tdc_id': np.zeros(24),
-            'channel': np.zeros(24),
-            'layer': np.zeros(24),
-            'ML': np.zeros(24),
-        }
+    def __init__(self, config):
+        self.config = config["Geometry"]
+        self.Chamber = {
+                    'x':np.array([]),
+                    'y':np.array([]),
+                    'tdc_id':np.array([]),
+                    'channel':np.array([]),
+                    'layer':np.array([]),
+                    'ML':np.array([]),
+                    }
+        self.BuildChamber()
 
-        typeA_channel_map = [5, 3, 4, 2, 0, 1]
-        for i in range(4):
-            layer = i // 6
-            tdcTypeA["layer"][i:(i+1)*6] = layer
-            tdcTypeA["x"][i] = self.radius
-            tdcTypeA["y"][i] = self.radius
-            tdcTypeA["channel"][i] = typeA_channel_map[i % 6] + 6*(layer)
+    def BuildChamber(self):
+
+        for multilayer_id, multilayer in enumerate(self.config["multilayers"]):
+            self.BuildMultilayer(self.config["multilayers"][multilayer], multilayer_id)
+            self.AddMultilayer()
+
+        # A single instance of chamber will never cause memory overflow.
+        # Numpy being annoying with initial type casting.
+        # Recasting everything to smaller types once the chamber is buillt
+        self.Chamber['tdc_id'] = np.array(self.Chamber['tdc_id'], dtype=np.int32)
+        self.Chamber['channel'] = np.array(self.Chamber['channel'], dtype=np.int32)
+        self.Chamber['layer'] = np.array(self.Chamber['layer'], dtype=np.int32)
+        self.Chamber['ML'] = np.array(self.Chamber['ML'], dtype=np.int32)
+
+    def AddMultilayer(self):
+        if len(self.Chamber['y']) > 0:
+            self.multilayer['y'] += self.Chamber['y'].max() + self.config["multilayer_spacing"]
+        for key in self.multilayer:
+            self.Chamber[key] = np.concatenate((self.Chamber[key], self.multilayer[key]))
+
+    def BuildMultilayer(self, multilayer, multilayer_id):
+
+        self.multilayer = {
+                'x':np.array([]),
+                'y':np.array([]),
+                'tdc_id':np.array([]),
+                'channel':np.array([]),
+                'layer':np.array([]),
+                'ML':np.array([]),
+                }
+
+        for k, activeTDC in enumerate(multilayer["activeTDCs"]):
+            if activeTDC:
+
+                TDC = self.BuildTDC(multilayer, k)
+                TDC['x'] += k*TDC['x'].max()
+                #TDC['x'] += k*(TDC['x'][1] - TDC['x'][0])/2 # This shifts by the maximum plus 1 tube radius + tube spacing
+                self.AddTDC(TDC)
+        self.multilayer['ML'] = np.full(len(self.multilayer['x']), multilayer_id)
+
+
+    def AddTDC(self, TDC):
+        for key in TDC:
+            self.multilayer[key] = np.concatenate((self.multilayer[key], TDC[key]))
+
+    def BuildTDC(self, multilayer, k):
+        tdc_id = multilayer["TDC_ids"][k]
+        if multilayer["tdcType"] == "446":
+            TDC = self.BuildTDCType446(multilayer, tdc_id)
+        elif multilayer["tdcType"] == "436":
+            TDC = self.BuildTDCType436(multilayer, tdc_id)
+        return TDC
+
+    def BuildTDCType446(self, multilayer, tdc_id):
+        nLayers = 4
+        tubesPerLayer = 6
+        TDC_446 = {
+            'x': np.zeros(24),
+            'y': np.zeros(24),
+            'tdc_id': np.full(24, tdc_id),
+            'channel': np.array([[5, 3, 4, 2, 0, 1],
+                                [11, 9, 10, 8, 6, 7],
+                                [17, 15, 16, 14, 12, 13],
+                                [23, 21, 22, 20, 18, 19]]).flatten(),
+            'layer': np.array([[0, 0, 0, 0, 0, 0],
+                                [1, 1, 1, 1, 1, 1],
+                                [2, 2, 2, 2, 2, 2],
+                                [3, 3, 3, 3, 3, 3]]).flatten(),
+        }
+        x_shift = multilayer['radius'] + multilayer["tube_spacing"]/2
+        for tube_num in range(tubesPerLayer):
+            TDC_446['x'][tube_num] = (2*tube_num + 2)*x_shift
+            TDC_446['x'][tube_num + 6] = (2*tube_num + 1)*x_shift
+            TDC_446['x'][tube_num + 12] = TDC_446['x'][tube_num]
+            TDC_446['x'][tube_num + 18] = TDC_446['x'][tube_num + 6]
+        tube_center_distance = 2*multilayer["radius"] + multilayer["tube_spacing"]
+        y_spacing = .5*tube_center_distance*np.sqrt(3)
+        for layer in range(nLayers):
+            TDC_446['y'][tubesPerLayer*layer:tubesPerLayer*(layer+1)] = y_spacing*layer + tube_center_distance/2
+        TDC_446['channel'] = TDC_446['channel'] + tdc_id * 100
+
+        return TDC_446
+
+    def BuildTDCType436(self, multilayer, tdc_id):
+        nLayers = 4
+        tubesPerLayer = 6
+        TDC_436 = {
+            'x': np.zeros(24),
+            'y': np.zeros(24),
+            'tdc_id': np.full(24, tdc_id),
+            'channel': np.array([[3, 1, 5, 0, 2, 4],
+                                [9, 7, 11, 6, 8, 10],
+                                [15, 13, 17, 12, 14, 16],
+                                [19, 21, 23, 18, 20, 22]]).flatten(),
+            'layer': np.array([[0, 0, 0, 0, 0, 0],
+                                [1, 1, 1, 1, 1, 1],
+                                [2, 2, 2, 2, 2, 2],
+                                [3, 3, 3, 3, 3, 3]], dtype = np.int32).flatten(),
+        }
+        x_shift = multilayer['radius'] + multilayer["tube_spacing"]/2
+        for tube_num in range(tubesPerLayer):
+            TDC_436['x'][tube_num] = (2*tube_num + 1)*x_shift
+            TDC_436['x'][tube_num + 6] = (2*tube_num + 2)*x_shift
+            TDC_436['x'][tube_num + 12] = TDC_436['x'][tube_num]
+            TDC_436['x'][tube_num + 18] = TDC_436['x'][tube_num + 6]
+        tube_center_distance = 2*multilayer["radius"] + multilayer["tube_spacing"]
+        # y_spacing = np.sqrt(tube_center_distance**2 - (tube_center_distance/2)**2)
+        y_spacing = .5*tube_center_distance*np.sqrt(3)
+        for layer in range(nLayers):
+            TDC_436['y'][tubesPerLayer*layer:tubesPerLayer*(layer+1)] = y_spacing*layer + tube_center_distance/2
+        TDC_436['channel'] = TDC_436['channel'] + tdc_id * 100
+        return TDC_436
+
+    def Draw(self, ax=None, key=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 6))
+        xmax = self.Chamber["x"].max()
+        xmin = self.Chamber["x"].min()
+        ymax = self.Chamber["y"].max()
+        ymin = self.Chamber["y"].min()
+        Ntubes = len(self.Chamber["x"])
+        for tube in range(Ntubes):
+            ml_num = self.Chamber['ML'][tube]
+            radius = self.config["multilayers"][f"multilayer{int(ml_num + 1)}"]["radius"]
+            center = (self.Chamber["x"][tube], self.Chamber["y"][tube])
+            if int(self.Chamber['tdc_id'][tube]/2)%2 == 1:
+                # Draw the tube as a filled circle
+                circle = Circle(center, radius, fill=True,facecolor='lightgrey', ec='black', lw=1)
+            else:
+                circle = Circle(center, radius, fill=False, ec='black', lw=1)
+            if key == None:
+                continue
+            elif key == "channel":
+                ax.text(center[0], center[1], self.Chamber["channel"][tube]%100, color='black', fontsize=10, ha='center', va='center')
+            else:
+                ax.text(center[0], center[1], self.Chamber[key][tube], color='black', fontsize=10, ha='center', va='center')
+            ax.add_patch(circle)
+        ax.set_xlim(xmin-radius*2, xmax + radius*2)
+        ax.set_ylim(ymin-radius*2, ymax + radius*2)
+
+        ax.set_xlabel("x[mm]")
+        ax.set_ylabel("y[mm]")
+        ax.set_aspect("equal")
+        ax.set_title("Chamber Geometry")
