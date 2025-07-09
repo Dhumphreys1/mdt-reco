@@ -20,11 +20,18 @@ class Chamber:
     def __repr__(self):
         return self.Chamber
 
+    def __getitem__(self, key):
+        if key in self.Chamber:
+            return self.Chamber[key]
+        else:
+            raise KeyError(f"Key '{key}' not found in Chamber data.")
+
     def BuildChamber(self):
 
-        for multilayer_id, multilayer in enumerate(self.config["multilayers"]):
-            self.BuildMultilayer(self.config["multilayers"][multilayer], multilayer_id)
-            self.AddMultilayer()
+        for multilayer_id, multilayer_name in enumerate(self.config["multilayers"]):
+            multilayer_config = self.config["multilayers"][multilayer_name]
+            self.BuildMultilayer(multilayer_config, multilayer_id)
+            self.AddMultilayer(multilayer_config)
 
         """
         Numpy appears to be recasting to safer larger types somewhere in the code.
@@ -39,13 +46,13 @@ class Chamber:
         self.Chamber['layer'] = self.Chamber['layer'].astype( dtype=np.int8)
         self.Chamber['ML'] = self.Chamber['ML'].astype(dtype=np.int8)
 
-    def AddMultilayer(self):
+    def AddMultilayer(self, multilayer_config):
         if len(self.Chamber['y']) > 0:
-            self.multilayer['y'] += self.Chamber['y'].max() + self.config["multilayer_spacing"]
+            self.multilayer['y'] += self.Chamber['y'].max() + multilayer_config["radius"] + self.config["multilayer_spacing"]
         for key in self.multilayer:
             self.Chamber[key] = np.concatenate((self.Chamber[key], self.multilayer[key]))
 
-    def BuildMultilayer(self, multilayer, multilayer_id):
+    def BuildMultilayer(self, multilayer_config, multilayer_id):
 
         self.multilayer = {
                 'x':np.array([]),
@@ -57,10 +64,10 @@ class Chamber:
                 'ML':np.array([]),
                 }
 
-        for k, activeTDC in enumerate(multilayer["activeTDCs"]):
+        for k, activeTDC in enumerate(multilayer_config["activeTDCs"]):
             if activeTDC:
 
-                TDC = self.BuildTDC(multilayer, k)
+                TDC = self.BuildTDC(multilayer_config, k)
                 TDC['x'] += k*TDC['x'].max()
                 #TDC['x'] += k*(TDC['x'][1] - TDC['x'][0])/2 # This shifts by the maximum plus 1 tube radius + tube spacing
                 self.AddTDC(TDC)
@@ -71,16 +78,16 @@ class Chamber:
         for key in TDC:
             self.multilayer[key] = np.concatenate((self.multilayer[key], TDC[key]))
 
-    def BuildTDC(self, multilayer, k):
-        tdc_id = multilayer["TDC_ids"][k]
-        csm_id = multilayer["CSM_ids"][k]
-        if multilayer["tdcType"] == "446":
-            TDC = self.BuildTDCType446(multilayer, tdc_id, csm_id)
-        elif multilayer["tdcType"] == "436":
-            TDC = self.BuildTDCType436(multilayer, tdc_id, csm_id)
+    def BuildTDC(self, multilayer_config, k):
+        tdc_id = multilayer_config["TDC_ids"][k]
+        csm_id = multilayer_config["CSM_ids"][k]
+        if multilayer_config["tdcType"] == "446":
+            TDC = self.BuildTDCType446(multilayer_config, tdc_id, csm_id)
+        elif multilayer_config["tdcType"] == "436":
+            TDC = self.BuildTDCType436(multilayer_config, tdc_id, csm_id)
         return TDC
 
-    def BuildTDCType446(self, multilayer, tdc_id, csm_id):
+    def BuildTDCType446(self, multilayer_config, tdc_id, csm_id):
         nLayers = 4
         tubesPerLayer = 6
         TDC_446 = {
@@ -97,7 +104,7 @@ class Chamber:
                                 [2, 2, 2, 2, 2, 2],
                                 [3, 3, 3, 3, 3, 3]]).flatten(),
         }
-        x_shift = multilayer['radius'] + multilayer["tube_spacing"]/2
+        x_shift = multilayer_config['radius'] + multilayer_config["tube_spacing"]/2
         for tube_num in range(tubesPerLayer):
             TDC_446['x'][tube_num] = (2*tube_num + 2)*x_shift
             TDC_446['x'][tube_num + 6] = (2*tube_num + 1)*x_shift
@@ -111,7 +118,7 @@ class Chamber:
 
         return TDC_446
 
-    def BuildTDCType436(self, multilayer, tdc_id, csm_id):
+    def BuildTDCType436(self, multilayer_config, tdc_id, csm_id):
         nLayers = 4
         tubesPerLayer = 6
         TDC_436 = {
@@ -128,7 +135,7 @@ class Chamber:
                                 [2, 2, 2, 2, 2, 2],
                                 [3, 3, 3, 3, 3, 3]]).flatten(),
         }
-        x_shift = multilayer['radius'] + multilayer["tube_spacing"]/2
+        x_shift = multilayer_config['radius'] + multilayer_config["tube_spacing"]/2
         for tube_num in range(tubesPerLayer):
             TDC_436['x'][tube_num] = (2*tube_num + 1)*x_shift
             TDC_436['x'][tube_num + 6] = (2*tube_num + 2)*x_shift
