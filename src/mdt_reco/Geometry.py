@@ -53,7 +53,6 @@ class Chamber:
             self.Chamber[key] = np.concatenate((self.Chamber[key], self.multilayer[key]))
 
     def BuildMultilayer(self, multilayer_config, multilayer_id):
-
         self.multilayer = {
                 'x':np.array([]),
                 'y':np.array([]),
@@ -66,7 +65,6 @@ class Chamber:
 
         for k, activeTDC in enumerate(multilayer_config["activeTDCs"]):
             if activeTDC:
-
                 TDC = self.BuildTDC(multilayer_config, k)
                 TDC['x'] += k*TDC['x'].max()
                 #TDC['x'] += k*(TDC['x'][1] - TDC['x'][0])/2 # This shifts by the maximum plus 1 tube radius + tube spacing
