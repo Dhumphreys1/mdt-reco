@@ -67,7 +67,6 @@ class Chamber:
             if activeTDC:
                 TDC = self.BuildTDC(multilayer_config, k)
                 TDC['x'] += k*TDC['x'].max()
-                #TDC['x'] += k*(TDC['x'][1] - TDC['x'][0])/2 # This shifts by the maximum plus 1 tube radius + tube spacing
                 self.AddTDC(TDC)
         self.multilayer['ML'] = np.full(len(self.multilayer['x']), multilayer_id)
 
@@ -112,8 +111,7 @@ class Chamber:
         y_spacing = .5*tube_center_distance*np.sqrt(3)
         for layer in range(nLayers):
             TDC_446['y'][tubesPerLayer*layer:tubesPerLayer*(layer+1)] = y_spacing*layer + tube_center_distance/2
-        TDC_446['channel'] = TDC_446['channel'] + tdc_id * 100
-
+        #TDC_446['channel'] = TDC_446['channel'] + tdc_id * 100
         return TDC_446
 
     def BuildTDCType436(self, multilayer_config, tdc_id, csm_id):
@@ -140,11 +138,10 @@ class Chamber:
             TDC_436['x'][tube_num + 12] = TDC_436['x'][tube_num]
             TDC_436['x'][tube_num + 18] = TDC_436['x'][tube_num + 6]
         tube_center_distance = 2*x_shift
-        # y_spacing = np.sqrt(tube_center_distance**2 - (tube_center_distance/2)**2)
         y_spacing = .5*tube_center_distance*np.sqrt(3)
         for layer in range(nLayers):
             TDC_436['y'][tubesPerLayer*layer:tubesPerLayer*(layer+1)] = y_spacing*layer + tube_center_distance/2
-        TDC_436['channel'] = TDC_436['channel'] + tdc_id * 100
+        #TDC_436['channel'] = TDC_436['channel'] + tdc_id * 100
         return TDC_436
 
     def Draw(self, ax=None, key=None):
