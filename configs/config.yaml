@@ -10,6 +10,7 @@ Geometry:
       tube_spacing: .035 #mm
       activeTDCs: [True, True, False, True]
       TDC_ids: [0, 2, 4, 6]
+      CSM_ids: [0, 0 , 0, 0]
       material:
         type: "Aluminum"
         thickness: 0.4 #mm
@@ -20,6 +21,7 @@ Geometry:
       tube_spacing: .035 #mm
       activeTDCs: [True, True, True, True]
       TDC_ids: [1, 3, 5, 7]
+      CSM_ids: [0, 0 , 0, 0]
       material:
         type: "Aluminum"
         thickness: 0.4 #mm
