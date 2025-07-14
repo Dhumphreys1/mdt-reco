@@ -9,56 +9,36 @@ import matplotlib.pyplot as plt
 #functions from elsewhere
 from Geometry import Chamber
 
-#diagnostic
-#print(np.__version__)
-#print(pd.__version__)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.normpath(os.path.join(script_dir, '../../data/events_10k.npy'))
 
-data = np.load(data_path, allow_pickle=True)
-
-all_rows = []
-for event_id, event in enumerate(data):
-    n_hits = len(event['x'])
-    for i in range(n_hits):
-        row = {key: event[key][i] for key in event}
-        row["event_id"] = event_id
-        all_rows.append(row)
-
-df = pd.DataFrame(all_rows)
-print(df.head(30))
-
-for i in range(len(df['drift_time'])):
-    if df['drift_time'][i] != 0:
-        print("Got one!")
+df = np.load(data_path, allow_pickle=True)
 
 #load configs to make geometry plot
-with open("../../configs/config.yaml") as f:
+with open("../../configs/ci_config.yaml") as f:
     config = yaml.safe_load(f)
 
 #show chamber
 chamber = Chamber(config)
-#fig, ax = plt.subplots(figsize=(12, 8))
-#chamber.Draw(ax=ax, key="channel")  # key="channel" adds text labels per tube
 
-#show hits
-x_hits_by_event = {}
+def plotEvents(events_list): #takes list of events to generate plots for
+    for event in events_list:
+        fig, ax = plt.subplots(figsize=(12, 8))
+        chamber.Draw(ax=ax, key="channel")  # key="channel" adds text labels per tube
+        x_hits = df[event]["x"]
+        y_hits = df[event]["y"]
+        ax.scatter(x_hits, y_hits, s=200, facecolors='none', edgecolors='red', linewidths=2, label='Hits')
+        ax.legend()
+        plt.savefig("figures/chamber_geometry_" + str(event) + ".jpg", format='jpg', dpi=300)
+        plt.close(fig)
 
-for event_id, group in df.groupby("event_id"):
-    x_hits_by_event[event_id] = group["x"].tolist()
+# prompt user for input
+if __name__ == "__main__":
+    print("\n\nHowdy!")
+    events_list = input("Which event(s) would you like to image (separate by commas)?    ")
+    events_list = [int(n) for n in events_list.split(',')]
+    plotEvents(events_list)
+    print("\nFinished.\nYour output files have been written to the figures/ directory.")
 
-y_hits_by_event = {}
 
-for event_id, group in df.groupby("event_id"):
-    y_hits_by_event[event_id] = group["y"].tolist()
-
-for i in range(10):
-    fig, ax = plt.subplots(figsize=(12, 8))
-    chamber.Draw(ax=ax, key="channel")  # key="channel" adds text labels per tube
-    x_hits = x_hits_by_event[i]
-    y_hits = y_hits_by_event[i]
-    ax.scatter(x_hits, y_hits, s=200, facecolors='none', edgecolors='red', linewidths=2, label='Hits')
-    ax.legend()
-    plt.savefig("figures/chamber_geometry_" + str(i) + ".jpg", format='jpg', dpi=300)
-    plt.close(fig)
