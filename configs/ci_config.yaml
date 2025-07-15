@@ -1,7 +1,7 @@
 
 
 Geometry:
-  multilayer_spacing: 21.536 #mm
+  multilayer_spacing: 6.536 #mm
   multilayers:
     multilayer1:
       tdcType: "446"

@@ -7,15 +7,17 @@ class Chamber:
     def __init__(self, config):
         self.config = config["Geometry"]
         self.Chamber = {
-                    'x':np.array([], dtype=np.float32),
-                    'y':np.array([], dtype=np.float32),
-                    'csm_id':np.array([], dtype=np.int8),
-                    'tdc_id':np.array([], dtype=np.int8),
-                    'channel':np.array([], dtype=np.int8),
-                    'layer':np.array([], dtype=np.int8),
-                    'ML':np.array([], dtype=np.int8),
+                    'x': np.array([], dtype=np.float32),
+                    'y': np.array([], dtype=np.float32),
+                    'csm_id': np.array([], dtype=np.int8),
+                    'tdc_id': np.array([], dtype=np.int8),
+                    'channel': np.array([], dtype=np.int8),
+                    'layer': np.array([], dtype=np.int8),
+                    'ML': np.array([], dtype=np.int8),
                     }
+        self._radius_container = np.array([], dtype=np.float32)
         self.BuildChamber()
+        self.FillRadiusContainer()
 
     def __repr__(self):
         return self.Chamber
@@ -54,14 +56,14 @@ class Chamber:
 
     def BuildMultilayer(self, multilayer_config, multilayer_id):
         self.multilayer = {
-                'x':np.array([]),
-                'y':np.array([]),
-                'csm_id':np.array([]),
-                'tdc_id':np.array([]),
-                'channel':np.array([]),
-                'layer':np.array([]),
-                'ML':np.array([]),
-                }
+                        'x': np.array([], dtype=np.float32),
+                        'y': np.array([], dtype=np.float32),
+                        'csm_id': np.array([], dtype=np.int8),
+                        'tdc_id': np.array([], dtype=np.int8),
+                        'channel': np.array([], dtype=np.int8),
+                        'layer': np.array([], dtype=np.int8),
+                        'ML': np.array([], dtype=np.int8),
+                        }
 
         for k, activeTDC in enumerate(multilayer_config["activeTDCs"]):
             if activeTDC:
@@ -144,6 +146,21 @@ class Chamber:
         #TDC_436['channel'] = TDC_436['channel'] + tdc_id * 100
         return TDC_436
 
+    def GetXY(self, tdc_id, channel):
+        x = self['x'][np.where((self['tdc_id'] == tdc_id) & (self['channel'] == channel))]
+        y = self['y'][np.where((self['tdc_id'] == tdc_id) & (self['channel'] == channel))]
+        return x, y
+
+    def GetRadius(self, tdc_id):
+        return self._radius_container[tdc_id]
+
+    def FillRadiusContainer(self):
+        max_tdc = np.max(self.Chamber['tdc_id']+1)
+        self._radius_container = np.zeros(max_tdc, dtype = np.float32)
+        for multilayer in self.config["multilayers"]:
+            for tdc_id in self.config["multilayers"][multilayer]["TDC_ids"]:
+                self._radius_container[tdc_id] = self.config["multilayers"][multilayer]['radius']
+
     def Draw(self, ax=None, key=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -161,11 +178,9 @@ class Chamber:
                 circle = Circle(center, radius, fill=True, facecolor='lightgrey', ec='black', lw=1)
             else:
                 circle = Circle(center, radius, fill=False, ec='black', lw=1)
-            if key is None:
-                continue
-            elif key == "channel":
+            if key == "channel":
                 ax.text(center[0], center[1], self.Chamber["channel"][tube]%100, color='black', fontsize=10, ha='center', va='center')
-            else:
+            elif key is not None:
                 ax.text(center[0], center[1], self.Chamber[key][tube], color='black', fontsize=10, ha='center', va='center')
             # ax.add_patch(circle)
             patches.append(circle)
