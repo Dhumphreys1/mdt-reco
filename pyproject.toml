@@ -10,7 +10,8 @@ requires-python = ">=3.13"
 dependencies = [
     "numpy",
     "matplotlib",
-    "pyyaml"
+    "pyyaml",
+    "numba"
 ]
 
 [dependency-groups]
