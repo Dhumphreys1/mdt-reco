@@ -10,7 +10,7 @@ class Chamber:
                     'x': np.array([], dtype=np.float32),
                     'y': np.array([], dtype=np.float32),
                     'csm_id': np.array([], dtype=np.uint8),
-                    'tdc_id': np.array([], dtype=np.ubyteint8),
+                    'tdc_id': np.array([], dtype=np.uint8),
                     'channel': np.array([], dtype=np.uint8),
                     'layer': np.array([], dtype=np.uint8),
                     'ML': np.array([], dtype=np.uint8),
