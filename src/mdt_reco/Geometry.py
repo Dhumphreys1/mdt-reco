@@ -9,18 +9,18 @@ class Chamber:
         self.Chamber = {
                     'x': np.array([], dtype=np.float32),
                     'y': np.array([], dtype=np.float32),
-                    'csm_id': np.array([], dtype=np.int8),
-                    'tdc_id': np.array([], dtype=np.int8),
-                    'channel': np.array([], dtype=np.int8),
-                    'layer': np.array([], dtype=np.int8),
-                    'ML': np.array([], dtype=np.int8),
+                    'csm_id': np.array([], dtype=np.uint8),
+                    'tdc_id': np.array([], dtype=np.ubyteint8),
+                    'channel': np.array([], dtype=np.uint8),
+                    'layer': np.array([], dtype=np.uint8),
+                    'ML': np.array([], dtype=np.uint8),
                     }
         self._radius_container = np.array([], dtype=np.float32)
         self.BuildChamber()
         self.FillRadiusContainer()
 
     def __repr__(self):
-        return self.Chamber
+        return repr(self.Chamber)
 
     def __getitem__(self, key):
         if key in self.Chamber:
@@ -42,11 +42,11 @@ class Chamber:
         """
         self.Chamber['x'] = self.Chamber['x'].astype(dtype=np.float32)
         self.Chamber['y'] = self.Chamber['y'].astype(dtype=np.float32)
-        self.Chamber['csm_id'] = self.Chamber['csm_id'].astype(dtype=np.int8)
-        self.Chamber['tdc_id'] = self.Chamber['tdc_id'].astype(dtype=np.int8)
-        self.Chamber['channel'] = self.Chamber['channel'].astype(dtype=np.int8)
-        self.Chamber['layer'] = self.Chamber['layer'].astype( dtype=np.int8)
-        self.Chamber['ML'] = self.Chamber['ML'].astype(dtype=np.int8)
+        self.Chamber['csm_id'] = self.Chamber['csm_id'].astype(dtype=np.uint8)
+        self.Chamber['tdc_id'] = self.Chamber['tdc_id'].astype(dtype=np.uint8)
+        self.Chamber['channel'] = self.Chamber['channel'].astype(dtype=np.uint8)
+        self.Chamber['layer'] = self.Chamber['layer'].astype( dtype=np.uint8)
+        self.Chamber['ML'] = self.Chamber['ML'].astype(dtype=np.uint8)
 
     def AddMultilayer(self, multilayer_config):
         if len(self.Chamber['y']) > 0:
