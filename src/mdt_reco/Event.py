@@ -15,23 +15,37 @@ class Event:
         would reduce the memory footprint, but should be evaluated at a later time.
         """
 
-        self.data = {
-            "csm_id": np.int8,
-            "tdc_id": np.int8,
-            "channel": np.int8,
-            "time": np.float32,
+        self._data_types = {
+            "csm_id": np.uint8,
+            "tdc_id": np.uint8,
+            "channel": np.uint8,
+            "tdc_time": np.float32,
             "pulseWidth": np.float32,
             "x": np.float32,
             "y": np.float32,
+            "drift_time": np.float32,
             "drift_radius": np.float32,
             }
+
+        self.data = {
+            key: np.array([], dtype = dtype)
+            for key, dtype in self._data_types.items()
+        }
+
         self._protected_keys = set(self.data.keys())
 
     def __getitem__(self, key):
         return self.data[key]
 
     def __setitem__(self, key, value):
-        self.data[key] = value  # Allow setting new or existing keys
+        if key in self._data_types:
+            expected_dtype = np.dtype(self._data_types[key])
+            actual_dtype = np.asarray(value).dtype
+            if actual_dtype != expected_dtype:
+                raise TypeError(
+                    f"Invalid dtype for key '{key}': expected {expected_dtype}, got {actual_dtype}"
+                )
+        self.data[key] = value  # Allow setting both protected and new keys
 
     def __delitem__(self, key):
         if key in self._protected_keys:
@@ -46,6 +60,9 @@ class Event:
 
     def __contains__(self, key):
         return key in self.data
+
+    def __repr__(self):
+        return repr(self.data)
 
     def keys(self):
         return self.data.keys()
