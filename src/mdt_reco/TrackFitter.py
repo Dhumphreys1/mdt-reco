@@ -1,11 +1,13 @@
 import numpy as np
 from numba import njit
 
+
 @njit
 def _compute_d_opt(x, y, theta):
     cos_t = np.cos(theta)
     sin_t = np.sin(theta)
     return np.mean(x * cos_t + y * sin_t)
+
 
 @njit
 def _objective(theta, x, y, r):
@@ -27,6 +29,7 @@ def _objective(theta, x, y, r):
             err_sum += err * err
     return err_sum
 
+
 @njit
 def _find_best_theta(x, y, r, n_steps=100):
     best_obj = 1e12
@@ -39,19 +42,21 @@ def _find_best_theta(x, y, r, n_steps=100):
             best_theta = theta
     return best_theta
 
+
 @njit
 def _line_from_normal(theta, d):
-    if np.abs(np.sin(theta)) < 1e-5:
+    tolerance = 1e-5
+    if np.abs(np.sin(theta)) < tolerance:
         return 1e10, d / np.cos(theta)
     m = -np.cos(theta) / np.sin(theta)
     b = d / np.sin(theta)
     return m, b
 
+
 class TrackFitter:
-    def fitTrack(self, x, y, r, normal_form = True):
+    def fitCosmic(self, x, y, r, normal_form=True):
         theta = _find_best_theta(x, y, r)
         d = _compute_d_opt(x, y, theta)
         if normal_form:
             return np.float32(theta), np.float32(d)
-        else:
-            return _line_from_normal(theta, d)
+        return _line_from_normal(theta, d)
