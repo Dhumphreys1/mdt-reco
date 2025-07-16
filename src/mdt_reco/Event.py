@@ -1,14 +1,16 @@
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
-from matplotlib.collections import PatchCollection
+
 from .Geometry import Chamber
+
 
 class Event:
     def __init__(self):
-
         """
         The event container must store all detector information of the event.
         x, y, and drift radius can technically be computed at a later time. This
@@ -26,12 +28,11 @@ class Event:
             "drift_time": np.float32,
             "drift_radius": np.float32,
             "theta": np.float32,
-            "d": np.float32
-            }
+            "d": np.float32,
+        }
 
         self.data = {
-            key: np.array([], dtype = dtype)
-            for key, dtype in self._data_types.items()
+            key: np.array([], dtype=dtype) for key, dtype in self._data_types.items()
         }
 
         self._protected_keys = set(self.data.keys())
@@ -44,14 +45,15 @@ class Event:
             expected_dtype = np.dtype(self._data_types[key])
             actual_dtype = np.asarray(value).dtype
             if actual_dtype != expected_dtype:
-                raise TypeError(
-                    f"Invalid dtype for key '{key}': expected {expected_dtype}, got {actual_dtype}"
-                )
+                msg = f"Invalid dtype for key '{key}': \
+                      expected {expected_dtype}, got {actual_dtype}"
+                raise TypeError(msg)
         self.data[key] = value  # Allow setting both protected and new keys
 
     def __delitem__(self, key):
         if key in self._protected_keys:
-            raise KeyError(f"Cannot delete protected key: '{key}'")
+            msg = f"Cannot delete protected key: '{key}'"
+            raise KeyError(msg)
         del self.data[key]
 
     def __iter__(self):
@@ -75,57 +77,71 @@ class Event:
     def values(self):
         return self.data.values()
 
-    def getTrackDist(self, theta = None, d = None):
+    def getTrackDist(self, theta=None, d=None):
         if theta is None:
-            theta = self['theta']
+            theta = self["theta"]
         if d is None:
-            d = self['d']
+            d = self["d"]
         if theta is None:
-            raise ValueError(f"Missing or empty parameter(s): theta")
+            msg = "Missing or empty parameter(s): theta"
+            raise ValueError(msg)
         if d is None:
-            raise ValueError(f"Missing or empty parameter(s): d")
+            msg = "Missing or empty parameter(s): d"
+            raise ValueError(msg)
 
-        cos_t = np.cos(theta)
-        sin_t = np.sin(theta)
-        track_dist = abs(self['x']*cos_t + self['y']*sin_t - d)
-        return track_dist
+        return abs(self["x"] * np.cos(theta) + self["y"] * np.sin(theta) - d)
 
-    def getTrackResid(self, theta = None, d = None):
-        return self['drift_radius'] - self.getTrackDist(theta = theta, d = d)
+    def getTrackResid(self, theta=None, d=None):
+        return self["drift_radius"] - self.getTrackDist(theta=theta, d=d)
 
-    def draw(self, chamber: Chamber, ax = None, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf"):
+    def draw(
+        self,
+        chamber: Chamber,
+        ax=None,
+        title=None,
+        save=False,
+        file_dir=None,
+        file_name=None,
+        file_ext=".pdf",
+    ):
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 10))
         chamber.draw(ax=ax)
         patches = []
-        for hit_id, _ in enumerate(self['x']):
-            center = (self['x'][hit_id], self['y'][hit_id])
+        for hit_id, _ in enumerate(self["x"]):
+            center = (self["x"][hit_id], self["y"][hit_id])
             radius = chamber.getRadius(self["tdc_id"][hit_id])
-            circle = Circle(center, radius, fill=True, facecolor='lime', ec='black', lw=1)
+            circle = Circle(
+                center, radius, fill=True, facecolor="lime", ec="black", lw=1
+            )
             patches.append(circle)
         collection = PatchCollection(patches, match_original=True)
         ax.add_collection(collection)
 
-        legend_circle = Line2D([0], [0],
-                           marker='o',
-                           color='w',
-                           markerfacecolor='lime',
-                           markeredgecolor='black',
-                           markersize=10,
-                           label='Hit')
-        ax.legend(handles=[legend_circle], loc='upper right')
+        legend_circle = Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            markerfacecolor="lime",
+            markeredgecolor="black",
+            markersize=10,
+            label="Hit",
+        )
+        ax.legend(handles=[legend_circle], loc="upper right")
 
-        ax.set_xlabel('x[mm]')
-        ax.set_ylabel('y[mm]')
+        ax.set_xlabel("x[mm]")
+        ax.set_ylabel("y[mm]")
         ylims = ax.get_ylim()
         ax.set_ylim(ylims[0], ylims[1] + 40)
         if title is not None:
             ax.set_title(title)
         if save:
             if file_dir is None or file_name is None:
-                raise ValueError("file_dir and file_name must be provided when save=True")
-            if not file_ext.startswith('.'):
-                file_ext = '.' + file_ext
+                msg = "file_dir and file_name must be provided when save=True"
+                raise ValueError(msg)
+            if not file_ext.startswith("."):
+                file_ext = "." + file_ext
             _, ext = os.path.splitext(file_name)
             if not ext:
                 file_name = file_name + file_ext
@@ -134,26 +150,38 @@ class Event:
         else:
             plt.show()
 
-    def drawTrack(self, chamber: Chamber, ax = None, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf", **kwargs):
+    def drawTrack(
+        self,
+        chamber: Chamber,
+        ax=None,
+        title=None,
+        save=False,
+        file_dir=None,
+        file_name=None,
+        file_ext=".pdf",
+        **kwargs,
+    ):
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 10))
-        cos_t = np.cos(self['theta'])
-        sin_t = np.sin(self['theta'])
-
-        if np.abs(sin_t) > 1e-5:
+        cos_t = np.cos(self["theta"])
+        sin_t = np.sin(self["theta"])
+        tolerance = 1e-5
+        if np.abs(sin_t) > tolerance:
             # Not vertical
-            x_vals = np.linspace(self['x'].min() - 20, self['x'].max() + 20, 10)
-            y_vals = (self['d'] - x_vals * cos_t) / sin_t
-            ax.plot(x_vals, y_vals, label = "Track", **kwargs)
+            x_vals = np.linspace(self["x"].min() - 20, self["x"].max() + 20, 10)
+            y_vals = (self["d"] - x_vals * cos_t) / sin_t
+            ax.plot(x_vals, y_vals, label="Track", **kwargs)
         else:
             # Vertical line: x = d / cos(θ)
-            x_line = self['d']  / cos_t
-            y_vals = np.linspace(self['y'].min() - 50, self['y'].max() + 50, 10)
-            ax.plot(np.full_like(y_vals, x_line), y_vals, label = "Track", **kwargs)
-        self.draw(chamber = chamber,
-                  ax = ax,
-                  title = title,
-                  save = save,
-                  file_dir = file_dir,
-                  file_name = file_name,
-                  file_ext = file_ext)
+            x_line = self["d"] / cos_t
+            y_vals = np.linspace(self["y"].min() - 50, self["y"].max() + 50, 10)
+            ax.plot(np.full_like(y_vals, x_line), y_vals, label="Track", **kwargs)
+        self.draw(
+            chamber=chamber,
+            ax=ax,
+            title=title,
+            save=save,
+            file_dir=file_dir,
+            file_name=file_name,
+            file_ext=file_ext,
+        )
