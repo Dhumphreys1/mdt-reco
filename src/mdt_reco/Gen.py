@@ -84,7 +84,9 @@ class Generator:
             x = self.Chamber["x"]
             y = self.Chamber["y"]
             d = np.abs(A * x - y + C) / np.sqrt(A**2 + 1)
-            hit_candidate= np.where(d < 15)
+            tube_hits= np.where(d < 15)
+            tdc= self.Chamber["tdc_id"][tube_hits] 
+            tube_radii= self.Chamber.GetRadius(tdc)
 
 
 
