@@ -96,11 +96,11 @@ class Event:
     def draw(self, chamber: Chamber, ax = None, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf"):
         if ax is None:
             fig, ax = plt.subplots(figsize=(10, 10))
-        chamber.Draw(ax=ax)
+        chamber.draw(ax=ax)
         patches = []
         for hit_id, _ in enumerate(self['x']):
             center = (self['x'][hit_id], self['y'][hit_id])
-            radius = chamber.GetRadius(self["tdc_id"][hit_id])
+            radius = chamber.getRadius(self["tdc_id"][hit_id])
             circle = Circle(center, radius, fill=True, facecolor='lime', ec='black', lw=1)
             patches.append(circle)
         collection = PatchCollection(patches, match_original=True)
