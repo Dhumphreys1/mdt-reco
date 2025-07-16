@@ -25,6 +25,8 @@ class Event:
             "y": np.float32,
             "drift_time": np.float32,
             "drift_radius": np.float32,
+            "theta": np.float32,
+            "d": np.float32
             }
 
         self.data = {
@@ -73,8 +75,27 @@ class Event:
     def values(self):
         return self.data.values()
 
-    def draw(self, chamber: Chamber, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf"):
-        fig, ax = plt.subplots(figsize=(10, 10))
+    def getTrackDist(self, theta = None, d = None):
+        if theta is None:
+            theta = self['theta']
+        if d is None:
+            d = self['d']
+        if theta is None:
+            raise ValueError(f"Missing or empty parameter(s): theta")
+        if d is None:
+            raise ValueError(f"Missing or empty parameter(s): d")
+
+        cos_t = np.cos(theta)
+        sin_t = np.sin(theta)
+        track_dist = abs(self['x']*cos_t + self['y']*sin_t - d)
+        return track_dist
+
+    def getTrackResid(self, theta = None, d = None):
+        return self['drift_radius'] - self.getTrackDist(theta = theta, d = d)
+
+    def draw(self, chamber: Chamber, ax = None, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf"):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 10))
         chamber.Draw(ax=ax)
         patches = []
         for hit_id, _ in enumerate(self['x']):
@@ -112,3 +133,27 @@ class Event:
             plt.savefig(file_path)
         else:
             plt.show()
+
+    def drawTrack(self, chamber: Chamber, ax = None, title = None, save = False, file_dir=None, file_name=None, file_ext=".pdf", **kwargs):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 10))
+        cos_t = np.cos(self['theta'])
+        sin_t = np.sin(self['theta'])
+
+        if np.abs(sin_t) > 1e-5:
+            # Not vertical
+            x_vals = np.linspace(self['x'].min() - 20, self['x'].max() + 20, 10)
+            y_vals = (self['d'] - x_vals * cos_t) / sin_t
+            ax.plot(x_vals, y_vals, label = "Track", **kwargs)
+        else:
+            # Vertical line: x = d / cos(θ)
+            x_line = self['d']  / cos_t
+            y_vals = np.linspace(self['y'].min() - 50, self['y'].max() + 50, 10)
+            ax.plot(np.full_like(y_vals, x_line), y_vals, label = "Track", **kwargs)
+        self.draw(chamber = chamber,
+                  ax = ax,
+                  title = title,
+                  save = save,
+                  file_dir = file_dir,
+                  file_name = file_name,
+                  file_ext = file_ext)
