@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from .Geometry import Chamber
+from .Event import Event
 
 
 
@@ -53,18 +54,17 @@ class Generator:
             sim_events.append(self.simEvent())
         return sim_events
 
-
     def findTrajectory(self, B, sim_event):
         """
         I expect this function to be run after the entire SimEvents dictionary is created. I think it will still work if this is not the case but 
         it would be easier if write some loop that develops the entire SimEvents dictionary(SimEvents() for i in range....)
         then just run FindTrajectory once as it just loops through the entirety of the dictionary in SimEvents
         """
-        track_params={
-            "A":[],
-            "C":[],
-            "tubes_hit(indices)":[],
-        }
+        # track_params={
+        #     "A":[],
+        #     "C":[],
+        #     "tubes_hit(indices)":[],
+        # }
         
         if B == 0:
         
@@ -76,31 +76,67 @@ class Generator:
             A = py / px
             C = y0 - A * x0
 
-            
-
-            # Calculate distance from track to all tubes
-            x = self.Chamber["x"]
-            y = self.Chamber["y"]
-            d = np.abs(A * x - y + C) / np.sqrt(A**2 + 1)
-            #pot_hits= np.where(d < 15)
-
-            tdc_ids = self.Chamber["tdc_id"] 
-            tube_radi= self.Chamber.getRadius(tdc_ids)
-
-
-            # Determine which tubes are hit
-            tubes_hit = np.where(d< tube_radi)[0]
-
-
-            # Store A and C
-            track_params["A"].append(A)
-            track_params["C"].append(C)
-            track_params["tubes_hit(indices)"].append(tubes_hit)
-
         else:
             raise NotImplementedError
             # Implement the case for non-zero magnetic field if needed
+        return [A,C]
+
+
+    def findTrajectories(self,B, sim_events):
+        track_params={
+            "A": [],
+            "C": []          
+        }
+        for sim_event in sim_events:
+            A, C = self.findTrajectory(B, sim_event)
+            track_params["A"].append(A)
+            track_params["C"].append(C)
         return track_params
+
+
+
+        # trajectories = []
+        # for event in sim_events:
+        #     trajectory = self.findTrajectory(B, event)
+        #     trajectories.append(trajectory)
+        # return trajectories
+    
+
+            
+    def createEvent(self,A,C,sim_event):
+            # Calculate distance from track to all tubes
+            x = self.Chamber["x"]
+            y = self.Chamber["y"]
+            drift_rad = np.abs(A * x - y + C) / np.sqrt(A**2 + 1)
+            
+            tdc_ids = self.Chamber["tdc_id"] 
+            csm_ids = self.Chamber["csm_id"]
+            channels = self.Chamber["channel"]
+            tube_radii = self.Chamber.getRadius(tdc_ids)
+            
+
+            tube_indices = np.where(drift_rad < tube_radii)[0]
+
+            event= Event()
+
+            event["tdc_id"] = tdc_ids[tube_indices]
+            event["csm_id"] = csm_ids[tube_indices]
+            event["channel"] = channels[tube_indices]
+            event["pulse_width"] = np.random.normal(200, 25, len(tube_indices))
+            event["drift_time"] = 3 * drift_rad[tube_indices].astype(np.float32)  # Drift time in ns
+            event["tdc_time"] = np.random.normal(70, 10, len(tube_indices)).astype(np.float32) + event["drift_time"]  # TDC time in ns
+            event["drift_radius"] = drift_rad[tube_indices].astype(np.float32)  # Drift radius in mm
+            
+            return event
+
+
+
+
+
+
+
+
+
 
 
 
