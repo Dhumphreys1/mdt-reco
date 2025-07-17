@@ -60,10 +60,10 @@ class Generator:
         it would be easier if write some loop that develops the entire SimEvents dictionary(SimEvents() for i in range....)
         then just run FindTrajectory once as it just loops through the entirety of the dictionary in SimEvents
         """
-        self.track_params={
+        track_params={
             "A":[],
             "C":[],
-            "tubes_hit":[]
+            "tubes_hit(indices)":[],
         }
         
         if B == 0:
@@ -76,29 +76,31 @@ class Generator:
             A = py / px
             C = y0 - A * x0
 
-            # Store A and C
-            self.track_params["A"].append(A)
-            self.track_params["C"].append(C)
+            
 
             # Calculate distance from track to all tubes
             x = self.Chamber["x"]
             y = self.Chamber["y"]
             d = np.abs(A * x - y + C) / np.sqrt(A**2 + 1)
-            tube_hits= np.where(d < 15)
-            tdc= self.Chamber["tdc_id"][tube_hits] 
-            tube_radii= self.Chamber.GetRadius(tdc)
+            #pot_hits= np.where(d < 15)
+
+            tdc_ids = self.Chamber["tdc_id"] 
+            tube_radi= self.Chamber.getRadius(tdc_ids)
 
 
+            # Determine which tubes are hit
+            tubes_hit = np.where(d< tube_radi)[0]
 
 
-            # # Determine which tubes are hit
-            # tubes_hit = np.where(d < self.Chamber.radius())[0]
-            # self.track_params["tubes_hit"].append(tubes_hit)
+            # Store A and C
+            track_params["A"].append(A)
+            track_params["C"].append(C)
+            track_params["tubes_hit(indices)"].append(tubes_hit)
 
         else:
             raise NotImplementedError
-        
-        return d
+            # Implement the case for non-zero magnetic field if needed
+        return track_params
 
 
 
