@@ -13,7 +13,7 @@ dependencies = [
     "pyyaml",
     "numba",
     "argparse",
-    "mplhep"
+    "mplhep",
 ]
 
 [dependency-groups]
