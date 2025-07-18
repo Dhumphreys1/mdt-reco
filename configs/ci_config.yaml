@@ -1,3 +1,7 @@
+General:
+  run_name: "CI_test_run"
+
+
 Signal:
   DataType: Phase2
 Reconstruction:
@@ -9,6 +13,7 @@ Simulator:
   tdc_time_sigma: 10 #ns
   pulse_width_mean: 200 #ns
   pulse_width_sigma: 25 #ns
+  nevents: 10  # Number of events to simulate
 
 Geometry:
   multilayer_spacing: 6.536 #mm

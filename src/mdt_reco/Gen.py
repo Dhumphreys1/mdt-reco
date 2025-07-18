@@ -131,9 +131,9 @@ class Generator:
         event["tdc_id"] = tdc_ids[tube_indices]
         event["csm_id"] = csm_ids[tube_indices]
         event["channel"] = channels[tube_indices]
-        event["pulse_width"] = np.random.normal(
+        event["adc_time"] = np.random.normal(
             pulse_width_mean, pulse_width_sigma, len(tube_indices)
-        )
+        ).astype(np.float32)
         event["drift_time"] = self.driftTime(drift_rad[tube_indices]).astype(
             np.float32
         )  # Drift time in ns
@@ -143,9 +143,7 @@ class Generator:
             )
             + event["drift_time"]
         )  # TDC time in ns
-        event["drift_radius"] = drift_rad[tube_indices].astype(
-            np.float32
-        )  
+        event["drift_radius"] = drift_rad[tube_indices].astype(np.float32)
         # Drift radius in mm
 
         return event
