@@ -1,4 +1,10 @@
 
+Simulator:
+  tdc_time_delay: 70 #ns
+  tdc_time_sigma: 10 #ns
+  pulse_width_mean: 200 #ns
+  pulse_width_sigma: 25 #ns
+
 
 Geometry:
   multilayer_spacing: 6.536 #mm
