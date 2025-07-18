@@ -34,6 +34,7 @@ class Signal:
             self._tdc_trailer_id = "11110000000000000000"
             self._trailer_id = "1100"
             self._trailer_four_zeroes = "0000"
+            self._cycles_to_time = 25 / 32
 
     # Encoding methods
     def convertIntToBits(self, n, width):
@@ -56,8 +57,7 @@ class Signal:
         A string of bits that represents the input integer in binary. The amount of bits
         contained in the string is equal to the width provided.
         """
-        formatted_string = format(n, f"0{width}b")
-        return formatted_string
+        return format(n, f"0{width}b")
 
     def writeBytes(self, bit_string, binary_file):
         """
@@ -76,7 +76,8 @@ class Signal:
         byte_to_write = ""
         for i in range(len(bit_string)):
             byte_to_write += bit_string[i]
-            if i % 8 == 7:
+            byte_cut_off = 7
+            if i % 8 == byte_cut_off:
                 bit_number = int(byte_to_write, 2)
                 byte_number = bit_number.to_bytes(1, byteorder="big")
                 binary_file.write(byte_number)
@@ -105,7 +106,7 @@ class Signal:
         trigger_lEdge = random.getrandbits(17)
         header_string += self.convertIntToBits(trigger_lEdge, 17)
         self.writeBytes(header_string, file)
-        trigger_lEdge_ns = trigger_lEdge * (25 / 32)
+        trigger_lEdge_ns = trigger_lEdge * self._cycles_to_time
         return trigger_lEdge_ns, event_id
 
     def writeTdc(self, event, file, index, trigger_time):
@@ -144,7 +145,10 @@ class Signal:
         tdc_data += chnl_id_bits
         mode = 1
         tdc_data += self.convertIntToBits(mode, 2)
-        lEdge = int(np.ceil(event["tdc_time"][index] + trigger_time) * (32 / 25))
+        lEdge = int(
+            np.ceil(event["tdc_time"][index] + trigger_time)
+            * (1 / self._cycles_to_time)
+        )
         tdc_data += self.convertIntToBits(lEdge, 17)
         width = event["pulseWidth"][index]
         tdc_data += self.convertIntToBits(width, 8)
@@ -176,7 +180,6 @@ class Signal:
         The ID of the event.
         """
         trailer_string = self._trailer_id
-        # I have the tdc header count being the amount of hits in the event. Idk if this is correct.
         tdc_header_count = len(event["tdc"])
         trailer_string += self.convertIntToBits(tdc_header_count, 4)
         tdc_trailer_count = tdc_header_count
@@ -247,8 +250,7 @@ class Signal:
         """
         byte_value = int.from_bytes(bytes, byteorder="big")
         bit_string = format(byte_value, f"0{self._word_length}b")
-        is_header = bit_string[: len(self._header_id)] == self._header_id
-        return is_header
+        return bit_string[: len(self._header_id)] == self._header_id
 
     def getBits(self, byte, width):
         """
@@ -268,8 +270,7 @@ class Signal:
         The string of bits representing the input byte.
         """
         byte_value = int.from_bytes(byte, byteorder="big")
-        bit_string = self.convertIntToBits(byte_value, width)
-        return bit_string
+        return self.convertIntToBits(byte_value, width)
 
     def findHeaders(self, binary_file):
         """
@@ -326,8 +327,7 @@ class Signal:
         """
         trigger_bytes = event[0]
         trigger_string = self.getBits(trigger_bytes, self._word_length)
-        trigger_time = int(trigger_string[23:], 2)
-        return trigger_time
+        return int(trigger_string[23:], 2)
 
     def checkTdc(self, event, index):
         """
@@ -349,11 +349,10 @@ class Signal:
         """
         is_tdc = False
         possible_tdc = self.getBits(event[index], self._word_length)
-        if possible_tdc[8:16] == self._tdc_header_id:
-            if index < len(event) - 2:
-                possible_tdc_trailer = self.getBits(event[index + 2], self._word_length)
-                if possible_tdc_trailer[8:28] == self._tdc_trailer_id:
-                    is_tdc = True
+        if possible_tdc[8:16] == self._tdc_header_id and index < len(event) - 2:
+            possible_tdc_trailer = self.getBits(event[index + 2], self._word_length)
+            if possible_tdc_trailer[8:28] == self._tdc_trailer_id:
+                is_tdc = True
         return is_tdc
 
     def accumulateEvents(self, event):
@@ -393,7 +392,7 @@ class Signal:
                 channel = np.uint8(int(tdc_data[8:13], 2))
                 pulse_width = np.float32(int(tdc_data[32:], 2))
                 lEdge = int(tdc_data[15:32], 2)
-                tdc_time = np.float32((lEdge - trigger_time) * (25 / 32))
+                tdc_time = np.float32((lEdge - trigger_time) * self._cycles_to_time)
                 x, y = geometry.getXY(tdc_id, channel)
                 csm_id_array.append(csm_id)
                 tdc_id_array.append(tdc_id)
@@ -488,19 +487,20 @@ class Signal:
                             next_header_location = header_locations[index_of_header]
                     counter += self._header_length
                     bytes = b_file.read(self._header_length)
-                    if not bytes and last_header == True:
-                        if (
-                            counter - next_header_location
-                            <= self._config["Reconstruction"]["MaxHits"]
-                            * 3
-                            * self._header_length
-                            and counter - next_header_location
-                            >= self._config["Reconstruction"]["MinHits"]
-                            * 3
-                            * self._header_length
-                        ):
-                            event_object = self.accumulateEvents(event)
-                            events.append(event_object)
+                    if (
+                        not bytes
+                        and last_header
+                        and counter - next_header_location
+                        <= self._config["Reconstruction"]["MaxHits"]
+                        * 3
+                        * self._header_length
+                        and counter - next_header_location
+                        >= self._config["Reconstruction"]["MinHits"]
+                        * 3
+                        * self._header_length
+                    ):
+                        event_object = self.accumulateEvents(event)
+                        events.append(event_object)
             return events
         msg = f"Data format is {self.data_format} is not supported."
         raise NotImplementedError(msg)
