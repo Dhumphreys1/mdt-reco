@@ -2,6 +2,8 @@
 __pycache__/
 *.py[oc]
 build/
+output/
+raw_data/
 dist/
 wheels/
 *.egg-info
