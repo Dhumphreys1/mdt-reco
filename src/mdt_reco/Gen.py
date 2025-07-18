@@ -26,7 +26,7 @@ class Generator:
     """
 
     def __init__(self, config):
-        
+        self.config = config
         self.Chamber= Chamber(config)
         self.x_interval = [self.Chamber["x"].min() - 30,  self.Chamber["x"].max() + 30]
         self.y_interval = [self.Chamber["y"].max() + 30, self.Chamber["y"].max() + 60]
@@ -100,11 +100,14 @@ class Generator:
         #     trajectory = self.findTrajectory(B, event)
         #     trajectories.append(trajectory)
         # return trajectories
-    
 
-            
-    def createEvent(self,A,C,sim_event):
-            # Calculate distance from track to all tubes
+    def driftTime(self, drift_rad):
+       drift_time = 3 * drift_rad.astype(np.float32)  # Drift time in ns
+
+       return drift_time
+
+    def createEvent(self, A, C, sim_event):
+            #Calculate distance from track to all tubes
             x = self.Chamber["x"]
             y = self.Chamber["y"]
             drift_rad = np.abs(A * x - y + C) / np.sqrt(A**2 + 1)
@@ -117,14 +120,31 @@ class Generator:
 
             tube_indices = np.where(drift_rad < tube_radii)[0]
 
+            if self.config["Simulator"]["tdc_time_delay"] is None:
+                tdc_time_delay = 70  # Default value if not specified
+            else:
+                tdc_time_delay = self.config["Simulator"]["tdc_time_delay"]
+            if self.config["Simulator"]["tdc_time_sigma"] is None:
+                tdc_time_sigma = 10  # Default value if not specified
+            else:
+                tdc_time_sigma = self.config["Simulator"]["tdc_time_sigma"]
+            if self.config["Simulator"]["pulse_width_mean"] is None:
+                pulse_width_mean = 200  # Default value if not specified
+            else:
+                pulse_width_mean = self.config["Simulator"]["pulse_width_mean"]
+            if self.config["Simulator"]["pulse_width_sigma"] is None:
+                pulse_width_sigma = 25  # Default value if not specified
+            else:
+                pulse_width_sigma = self.config["Simulator"]["pulse_width_sigma"]
+
             event= Event()
 
             event["tdc_id"] = tdc_ids[tube_indices]
             event["csm_id"] = csm_ids[tube_indices]
             event["channel"] = channels[tube_indices]
-            event["pulse_width"] = np.random.normal(200, 25, len(tube_indices))
-            event["drift_time"] = 3 * drift_rad[tube_indices].astype(np.float32)  # Drift time in ns
-            event["tdc_time"] = np.random.normal(70, 10, len(tube_indices)).astype(np.float32) + event["drift_time"]  # TDC time in ns
+            event["pulse_width"] = np.random.normal(pulse_width_mean, pulse_width_sigma, len(tube_indices))
+            event["drift_time"] = self.driftTime(drift_rad[tube_indices]).astype(np.float32)  # Drift time in ns
+            event["tdc_time"] = np.random.normal(tdc_time_delay, tdc_time_sigma, len(tube_indices)).astype(np.float32) + event["drift_time"]  # TDC time in ns
             event["drift_radius"] = drift_rad[tube_indices].astype(np.float32)  # Drift radius in mm
             
             return event
