@@ -54,8 +54,8 @@ def _line_from_normal(theta, d):
 
 
 class TrackFitter:
-    def fitCosmic(self, x, y, r, normal_form=True):
-        theta = _find_best_theta(x, y, r)
+    def fitCosmic(self, x, y, r, n_steps, normal_form=True):
+        theta = _find_best_theta(x, y, r, n_steps)
         d = _compute_d_opt(x, y, theta)
         if normal_form:
             return np.float32(theta), np.float32(d)
