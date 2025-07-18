@@ -1,8 +1,8 @@
 import argparse
-import mdt_reco
 import os
-import numpy as np
 import pickle
+
+import mdt_reco
 
 
 def main():
