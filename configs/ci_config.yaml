@@ -1,4 +1,8 @@
-
+Signal:
+  DataType: Phase2
+Reconstruction:
+  MaxHits: 12
+  MinHits: 6
 
 Geometry:
   multilayer_spacing: 6.536 #mm

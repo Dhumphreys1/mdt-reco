@@ -1,11 +1,13 @@
 import numpy as np
 import random
+import mdt_reco
 
 class Signal():
     def __init__(self, config):
         self._config = config
         if config['Signal']['DataType'] == "Phase2":
             self._header_length = 5
+            self._word_length = 40
             self._header_id = '10100000000'
             self._csm_id = '000'
             self._tdc_header_id = '11111000'
@@ -72,7 +74,7 @@ class Signal():
         event_id : int
         The ID of the event.
         """
-        header_string = self._header_string
+        header_string = self._header_id
         event_id = random.getrandbits(12)
         print(event_id)
         header_string += self.convert_int_to_bits(event_id, 12)
@@ -115,16 +117,18 @@ class Signal():
         tdc_data += tdc_id_bits
         chnl_id = int(event['channel'][index])
         chnl_id_bits = self.convert_int_to_bits(chnl_id, 5)
+        print(f"Channel ID int = {chnl_id}")
+        print(f"Channel ID bits = {chnl_id_bits}")
         tdc_data += chnl_id_bits
         mode = 1
         tdc_data += self.convert_int_to_bits(mode, 2)
-        print((event['tdc_time'][index] + trigger_time) * (32 / 25))
+        # print((event['tdc_time'][index] + trigger_time) * (32 / 25))
         # You have to multiply by 32 / 25 and ceil it
         lEdge = int((np.ceil(event['tdc_time'][index] + trigger_time) * (32 / 25)))
         tdc_data += self.convert_int_to_bits(lEdge, 17)
         # Made width an int, but the distribution returns floats with decimal points
         # It is not the specific amount of bits that you wanted.
-        width = int(np.random.normal(loc=200, scale=25))
+        width = random.getrandbits(8)
         tdc_data += self.convert_int_to_bits(width, 8)
         self.write_bytes(tdc_data, file)
         tdc_trailer = self._csm_id
@@ -208,10 +212,15 @@ class Signal():
     # Decoding methods
     def checkHeader(self, bytes):
         byte_value = int.from_bytes(bytes, byteorder='big')
-        bit_string = format(byte_value, '40b')
+        bit_string = format(byte_value, f'0{self._word_length}b')
         is_header = bit_string[:len(self._header_id)] == self._header_id
         return is_header
-
+    
+    def getBits(self, byte, width):
+        byte_value = int.from_bytes(byte, byteorder='big')
+        bit_string = self.convert_int_to_bits(byte_value, width)
+        return bit_string
+    
     def findHeaders(self, binary_file):
         with open(binary_file, 'rb') as b_file:
             # Initialize an array to store the Header locations
@@ -225,11 +234,134 @@ class Signal():
                 if self.checkHeader(bytes):
                     header_locations.append(counter)
                 counter += self._header_length
+                bytes = b_file.read(self._header_length)
+            print(header_locations)
         return header_locations
     
+    def accumulateEvents(self, event):
+        # Get overall trigger time
+        geometry = mdt_reco.geo(self._config)
+        trigger_bytes = event[0]
+        trigger_string = self.getBits(trigger_bytes, self._word_length)
+        trigger_time = int(trigger_string[23:], 2)
+        csm_id_array = []
+        tdc_id_array = []
+        channel_array = []
+        pulse_width_array = []
+        tdc_time_array = []
+        x_array = []
+        y_array = []
+        for i in range(len(event)):
+            # Get information for a singular hit
+            possible_tdc = self.getBits(event[i], self._word_length)
+            if possible_tdc[8:16] == self._tdc_header_id:
+                if i < len(event) - 2:
+                    possible_tdc_trailer = self.getBits(event[i + 2], self._word_length)
+                    if possible_tdc_trailer[8:28] == self._tdc_trailer_id:
+                        tdc_data = self.getBits(event[i + 1], self._word_length)
+                        csm_id = np.uint8(int(tdc_data[:3], 2))
+                        tdc_id = np.uint8(int(tdc_data[3:8], 2))
+                        channel = np.uint8(int(tdc_data[8:13], 2))
+                        pulse_width = np.float32(int(tdc_data[32:], 2))
+                        lEdge = int(tdc_data[15:32], 2)
+                        print(f"tdc_time = {(lEdge - trigger_time) * (25 / 32)}")
+                        tdc_time = np.float32((lEdge - trigger_time) * (25 / 32))
+                        x, y = geometry.GetXY(tdc_id, channel)
+                        csm_id_array.append(csm_id)
+                        tdc_id_array.append(tdc_id)
+                        channel_array.append(channel)
+                        pulse_width_array.append(pulse_width)
+                        tdc_time_array.append(tdc_time)
+                        x_array.append(np.float32(x[0]))
+                        y_array.append(np.float32(y[0]))
+        event_object = mdt_reco.Event()
+        event_object['csm_id'] = csm_id_array
+        event_object['tdc_id'] = tdc_id_array
+        event_object['channel'] = channel_array
+        event_object['tdc_time'] = tdc_time_array
+        event_object['pulseWidth'] = pulse_width_array
+        event_object['x'] = x_array
+        event_object['y'] = y_array
+        return event_object
+
+    
+    def decodeEvents(self, binary_file):
+        header_locations = self.findHeaders(binary_file)
+        print(header_locations)
+        with open(binary_file, 'rb') as b_file:
+            packet = b_file.read(self._header_length)
+            counter = 0
+            event = []
+            events = []
+            next_header_location = -1
+            last_header = False
+            still_do = True
+            good_packet = False
+            while packet:
+                if counter == next_header_location and still_do:
+                    print("inside if")
+                    if good_packet:
+                        event_object = self.accumulateEvents(event)
+                        events.append(event_object)
+                        event = []
+                        good_packet = False
+                    else:
+                        print(f"counter = {counter}")
+                        event = []
+                    if last_header:
+                        still_do = False
+                event.append(packet)
+                if counter in header_locations:
+                    index_of_header = header_locations.index(counter)
+                    if counter < header_locations[-1]:
+                        next_header_location = header_locations[index_of_header + 1]
+                        if header_locations[index_of_header + 1] - header_locations[index_of_header] <= (self._config['Reconstruction']['MaxHits'] * 3 * self._header_length) + 2 * self._header_length and header_locations[index_of_header + 1] - header_locations[index_of_header] >= (self._config['Reconstruction']['MinHits'] * 3 * self._header_length) + 2 * self._header_length:
+                            good_packet = True
+                    else:
+                        last_header = True
+                        next_header_location = header_locations[index_of_header]
+                counter += self._header_length
+                packet = b_file.read(self._header_length)
+                if not packet and last_header == True:
+                    if counter - next_header_location <= self._config['Reconstruction']['MaxHits'] * 3 * self._header_length and counter - next_header_location >= self._config['Reconstruction']['MinHits'] * 3 * self._header_length:
+                        event_object = self.accumulateEvents(event)
+                        events.append(event_object)
+        return events
 
                     # if counter > 0:
                     #     if header_locations[counter] - header_locations[counter - 1] > self._config['Reconstruction']['MaxHits'] * 3 or header_locations[counter] - header_locations[counter - 1] < self._config['Reconstruction']['MinHits'] * 3:
                     #         header_locations.pop(counter - 1)
 
-    
+
+
+
+config_path = "/Users/bstarzee/mdt-reco/configs/ci_config.yaml"
+config = mdt_reco.configParser(config_path)
+chamber=mdt_reco.geo(config)
+
+
+signal_object = Signal(config)
+test_file = "/Users/bstarzee/Downloads/mdt-reco_data/events_10k.npy"
+array = np.load(test_file, allow_pickle=True)
+print(array[0]['tdc_time'])
+print(signal_object._config['Signal']['DataType'])
+# signal_object.encode_event(array[0], "/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_19.txt")
+# signal_object.encode_event(array[1], "/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_19.txt")
+# signal_object.encode_event(array[2], "/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_19.txt")
+# signal_object.encode_event(array[3], "/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_19.txt")
+events = []
+events = signal_object.decodeEvents("/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_19.txt")
+geometry = mdt_reco.geo(signal_object._config)
+events[2].draw(chamber=geometry)
+# print(events)
+# print(events[0]['csm_id'])
+print(f"length = {len(events)}")
+# print(array[2])
+# print(events[2]['tdc_time'])
+# print(events[3]['tdc_time'])
+print(array[0]['tdc_time'])
+print(array[1]['tdc_time'])
+print(array[2]['tdc_time'])
+print(array[3]['tdc_time'])
+# signal_object.encode_events(array, "/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_16.txt")
+# all_events = signal_object.decodeEvents("/Users/bstarzee/mdt-reco/src/mdt_reco/test_binary_16.txt")
