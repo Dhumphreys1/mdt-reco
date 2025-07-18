@@ -3,6 +3,7 @@ import random
 import numpy as np
 
 import mdt_reco
+from .Geometry import Chamber
 
 
 class Signal:
@@ -129,7 +130,7 @@ class Signal:
         The trigger time in nanoseconds.
         """
         tdc_header = self._csm_id
-        tdc_id = int(event["tdc"][index])
+        tdc_id = int(event["tdc_id"][index])
         tdc_id_bits = self.convertIntToBits(tdc_id, 5)
         tdc_header += tdc_id_bits
         tdc_header += self._tdc_header_id
@@ -146,11 +147,11 @@ class Signal:
         mode = 1
         tdc_data += self.convertIntToBits(mode, 2)
         lEdge = int(
-            np.ceil(event["tdc_time"][index] + trigger_time)
-            * (1 / self._cycles_to_time)
+            np.ceil((event["tdc_time"][index] + trigger_time)
+            * (1 / self._cycles_to_time))
         )
         tdc_data += self.convertIntToBits(lEdge, 17)
-        width = event["pulseWidth"][index]
+        width = int(event["adc_time"][index])
         tdc_data += self.convertIntToBits(width, 8)
         self.writeBytes(tdc_data, file)
         tdc_trailer = self._csm_id
@@ -180,7 +181,7 @@ class Signal:
         The ID of the event.
         """
         trailer_string = self._trailer_id
-        tdc_header_count = len(event["tdc"])
+        tdc_header_count = len(event["tdc_id"])
         trailer_string += self.convertIntToBits(tdc_header_count, 4)
         tdc_trailer_count = tdc_header_count
         trailer_string += self.convertIntToBits(tdc_trailer_count, 4)
@@ -212,7 +213,7 @@ class Signal:
             trigger_lEdge, event_id = self.writeHeader(binary_file, index)
 
             # Write the TDC information for each hit
-            for i in range(len(event["tdc"])):
+            for i in range(len(event["tdc_id"])):
                 self.writeTdc(event, binary_file, i, trigger_lEdge)
 
             # Write the Trailer
@@ -406,7 +407,7 @@ class Signal:
         event_object["tdc_id"] = tdc_id_array
         event_object["channel"] = channel_array
         event_object["tdc_time"] = tdc_time_array
-        event_object["pulseWidth"] = pulse_width_array
+        event_object["adc_time"] = pulse_width_array
         event_object["x"] = x_array
         event_object["y"] = y_array
         return event_object
