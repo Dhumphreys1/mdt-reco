@@ -110,7 +110,7 @@ def generatePlots(events_list): #takes list of events to generate plots for
     x_cutoff = 25 #cut out non-signal domain
     mask = aggd_dists <= x_cutoff
     filtered_dists = aggd_dists[mask]
-    filtered_times = aggd_times[mask]
+    filtered_times = aggd_times[mask] - 70 #TDC->Drift
     
     # Create 2D histogram manually
     H, xedges, yedges = np.histogram2d(filtered_dists, filtered_times, bins=50)
@@ -127,21 +127,43 @@ def generatePlots(events_list): #takes list of events to generate plots for
     ridge_y_indices = np.argmax(H, axis=1)
 #    ridge_y_values = ycenters[ridge_y_indices]
     ridge_y_values = []
+    
+    filtered_x = []
+    filtered_y = []
+
     for i in range(H.shape[0]):
         column = H_normalized[i, :]
-        if column.sum() > 0:
-            com_idx = center_of_mass(column)[0]
-            ridge_y = ycenters[int(com_idx)]
-        else:
-            ridge_y = np.nan  # no signal
-        ridge_y_values.append(ridge_y)
+        total = column.sum()
+        if total == 0:
+                continue
 
-    ridge_y_values = np.array(ridge_y_values)
-    valid = ~np.isnan(ridge_y_values)
+        probs = column / total
+        com_idx = center_of_mass(probs)[0]
+        var_idx = np.sum(probs * (np.arange(len(probs)) - com_idx)**2)
+        std_idx = np.sqrt(var_idx)
+
+        y_com = ycenters[int(round(com_idx))]
+        y_std = std_idx * (ycenters[1] - ycenters[0])
+
+        k = 1.0  # standard deviation threshold
+        y_min = y_com - k * y_std
+        y_max = y_com + k * y_std
+
+        x_val = xcenters[i]
+        for j in range(len(ycenters)):
+            y_val = ycenters[j]
+            if y_min <= y_val <= y_max and H[i, j] > 0:
+                filtered_x.append(x_val)
+                filtered_y.append(y_val)
+
+    filtered_x = np.array(filtered_x)
+    filtered_y = np.array(filtered_y)
+
+#    ax3.scatter(filtered_x, filtered_y, s=8, color='cyan', alpha=0.6, label='Filtered ridge pts')
 
     # Fit Chebyshev polynomial of degree N
     degree = 4
-    cheb_fit = Chebyshev.fit(xcenters, ridge_y_values, degree)
+    cheb_fit = Chebyshev.fit(filtered_x, filtered_y, degree)
 
     # Shift to satisfy y(0)=0
     def fit_with_constraint(x):
