@@ -17,7 +17,6 @@ def gaussian(x, A, mu, sigma):
 
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, help="Path to the configuration file")
     args = parser.parse_args()
@@ -26,7 +25,7 @@ def main():
     max_iter = config["TDCFitting"]["max_iterations"]
 
     tdcFitter = mdt_reco.tdcFitter()
-    input_file = f"../output/{config["General"]["run_name"]}/{config["General"]["input_file"]}.pkl"
+    input_file = f"../output/{config['General']['run_name']}/{config['General']['input_file']}.pkl"
     with open(input_file, "rb") as f:
         events = pickle.load(f)
 
@@ -46,7 +45,7 @@ def main():
     tdc_bins = config["TDCFitting"]["tdc_bins"]
     tdc_range = np.linspace(tdc_min, tdc_max, tdc_bins + 1)
     active_tdcs = np.unique(tdc_ids)
-    
+
     for tdc_id in active_tdcs:
         tdc_history[tdc_id] = {}
         tdc_histos[tdc_id] = {}

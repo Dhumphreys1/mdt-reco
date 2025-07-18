@@ -18,18 +18,21 @@ def main():
     sim_events = generator.simEvents(config["Simulator"]["nevents"])
     track_params = generator.findTrajectories(B=0, sim_events=sim_events)
 
-    events=[]
+    events = []
     for A, C in zip(track_params["A"], track_params["C"], strict=False):
         event = generator.createEvent(A, C)
         events.append(event)
 
     output_dir = f"../output/{config['General']['run_name']}"
     os.makedirs(output_dir, exist_ok=True)
-    with open(f"{output_dir}/sim_events_{config['Simulator']['nevents']}.pkl", "wb") as f:
+    with open(
+        f"{output_dir}/sim_events_{config['Simulator']['nevents']}.pkl", "wb"
+    ) as f:
         pickle.dump(events, f)
 
     with open(f"{output_dir}/track_params.pkl", "wb") as f:
         pickle.dump(track_params, f)
+
 
 if __name__ == "__main__":
     main()

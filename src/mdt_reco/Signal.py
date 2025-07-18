@@ -3,7 +3,6 @@ import random
 import numpy as np
 
 import mdt_reco
-from .Geometry import Chamber
 
 
 class Signal:

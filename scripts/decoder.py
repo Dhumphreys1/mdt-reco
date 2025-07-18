@@ -18,10 +18,11 @@ def main():
     events = signal_object.decodeEvents(file_path)
     run_name = config["General"]["run_name"]
     output_dir = f"../output/{run_name}"
-    os.makedirs(output_dir, exist_ok = True)
+    os.makedirs(output_dir, exist_ok=True)
     output_file = f"{output_dir}/{args.event_name}.pkl"
     with open(output_file, "wb") as f:
         pickle.dump(events, f)
+
 
 if __name__ == "__main__":
     main()
