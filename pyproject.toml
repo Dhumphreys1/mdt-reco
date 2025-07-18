@@ -11,7 +11,9 @@ dependencies = [
     "numpy",
     "matplotlib",
     "pyyaml",
-    "numba"
+    "numba",
+    "argparse",
+    "mplhep",
 ]
 
 [dependency-groups]
@@ -57,6 +59,7 @@ extend-ignore = [
     "PTH122",  # Prefer Path.suffix, Path.stem, etc.
     "PTH118",  # Prefer Path / operator over os.path.join
     "PLR0913", # Too many arguments in function (from pylint rules)
+    "NPY002",  # replace legacy functions
 ]
 
 
