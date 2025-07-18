@@ -22,7 +22,7 @@ class Event:
             "tdc_id": np.uint8,
             "channel": np.uint8,
             "tdc_time": np.float32,
-            "pulseWidth": np.float32,
+            "adc_time": np.float32,
             "x": np.float32,
             "y": np.float32,
             "drift_time": np.float32,
