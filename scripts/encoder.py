@@ -2,8 +2,6 @@ import argparse
 import os
 import pickle
 
-import numpy as np
-
 import mdt_reco
 
 
@@ -19,9 +17,10 @@ def main():
     with open(args.events, "rb") as f:
         events = pickle.load(f)
         output_dir = "../raw_data"
-        os.makedirs(output_dir, exist_ok = True)
+        os.makedirs(output_dir, exist_ok=True)
         output_file = f"{output_dir}/{args.file}"
         signal_object.encodeEvents(events, output_file)
+
 
 if __name__ == "__main__":
     main()
