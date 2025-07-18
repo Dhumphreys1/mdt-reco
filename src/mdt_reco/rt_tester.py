@@ -1,9 +1,13 @@
 #python frontmatter
 import os
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import yaml
 import matplotlib.pyplot as plt
+
+from numpy.polynomial.chebyshev import Chebyshev
+from scipy.ndimage import center_of_mass
+
 #NOTE TO SELF: these need to be reflected in ../../setup_env.sh so that we have access to 'em
 
 #functions from elsewhere
@@ -110,6 +114,7 @@ def generatePlots(events_list): #takes list of events to generate plots for
     
     # Create 2D histogram manually
     H, xedges, yedges = np.histogram2d(filtered_dists, filtered_times, bins=50)
+    H_normalized = H / H.sum(axis=1, keepdims=True)
 
     # Midpoints of bins
     xcenters = 0.5 * (xedges[:-1] + xedges[1:])
@@ -120,9 +125,19 @@ def generatePlots(events_list): #takes list of events to generate plots for
 
     # Find ridge (max y-bin index for each x column)
     ridge_y_indices = np.argmax(H, axis=1)
-    ridge_y_values = ycenters[ridge_y_indices]
+#    ridge_y_values = ycenters[ridge_y_indices]
+    ridge_y_values = []
+    for i in range(H.shape[0]):
+        column = H_normalized[i, :]
+        if column.sum() > 0:
+            com_idx = center_of_mass(column)[0]
+            ridge_y = ycenters[int(com_idx)]
+        else:
+            ridge_y = np.nan  # no signal
+        ridge_y_values.append(ridge_y)
 
-    from numpy.polynomial.chebyshev import Chebyshev
+    ridge_y_values = np.array(ridge_y_values)
+    valid = ~np.isnan(ridge_y_values)
 
     # Fit Chebyshev polynomial of degree N
     degree = 4
