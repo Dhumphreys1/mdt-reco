@@ -14,6 +14,8 @@ dependencies = [
     "numba",
     "argparse",
     "mplhep",
+    "scipy",
+    "pickle"
 ]
 
 [dependency-groups]
@@ -58,6 +60,7 @@ extend-ignore = [
     "PTH123",  # Prefer Path.open()
     "PTH122",  # Prefer Path.suffix, Path.stem, etc.
     "PTH118",  # Prefer Path / operator over os.path.join
+    "PTH103",  # Path is stupid
     "PLR0913", # Too many arguments in function (from pylint rules)
     "NPY002",  # replace legacy functions
 ]

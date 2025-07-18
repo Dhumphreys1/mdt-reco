@@ -1,8 +1,9 @@
 import argparse
-import mdt_reco
-import numpy as np
 import os
 import pickle
+
+import mdt_reco
+
 
 def main():
     parser = argparse.ArgumentParser()

@@ -7,7 +7,14 @@ Signal:
 Reconstruction:
   MaxHits: 12
   MinHits: 6
-
+TDCFitting:
+  max_iterations: 100
+  tdc_max: 1000 #ns
+  tdc_min: 0 #ns
+  tdc_bins: 200
+  adc_max: 300 #ns
+  adc_min: 0 #ns
+  adc_bins: 50
 Simulator:
   tdc_time_delay: 70 #ns
   tdc_time_sigma: 10 #ns
