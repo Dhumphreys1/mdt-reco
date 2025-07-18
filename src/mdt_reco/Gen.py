@@ -143,9 +143,7 @@ class Generator:
             )
             + event["drift_time"]
         )  # TDC time in ns
-        event["drift_radius"] = drift_rad[tube_indices].astype(
-            np.float32
-        )  
+        event["drift_radius"] = drift_rad[tube_indices].astype(np.float32)
         # Drift radius in mm
 
         return event
