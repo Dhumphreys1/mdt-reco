@@ -2,6 +2,7 @@ import argparse
 import mdt_reco
 import numpy as np
 import os
+import pickle
 
 def main():
     parser = argparse.ArgumentParser()
@@ -12,11 +13,12 @@ def main():
     config_path = args.config
     config = mdt_reco.configParser(config_path)
     signal_object = mdt_reco.Signal(config)
-    events = np.load(args.events, allow_pickle=True)
-    output_dir = "../raw_data"
-    os.makedirs(output_dir, exist_ok = True)
-    output_file = f"{output_dir}/{args.file}"
-    signal_object.encodeEvents(events, output_file)
+    with open(args.events, "rb") as f:
+        events = pickle.load(f)
+        output_dir = "../raw_data"
+        os.makedirs(output_dir, exist_ok = True)
+        output_file = f"{output_dir}/{args.file}"
+        signal_object.encodeEvents(events, output_file)
 
 if __name__ == "__main__":
     main()
