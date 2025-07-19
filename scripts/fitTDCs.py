@@ -16,16 +16,21 @@ def gaussian(x, A, mu, sigma):
     return A * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 
-def main():
+# NEEDS TO BE REFACTORED
+def main():  # noqa: PLR0915
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, help="Path to the configuration file")
+    parser.add_argument(
+        "--config", type=str, required=True, help="Path to the configuration file"
+    )
     args = parser.parse_args()
 
-    config = mdt_reco.configParser(args.config)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, "../configs", args.config)
+    config = mdt_reco.configParser(config_path)
     max_iter = config["TDCFitting"]["max_iterations"]
 
     tdcFitter = mdt_reco.tdcFitter()
-    input_file = f"../output/{config['General']['run_name']}/{config['General']['input_file']}.pkl"
+    input_file = f"{script_dir}/../output/{config['General']['run_name']}/{config['General']['input_file']}.pkl"
     with open(input_file, "rb") as f:
         events = pickle.load(f)
 
@@ -33,9 +38,6 @@ def main():
     del events  # Free memory
     active_tdcs = np.unique(tdc_ids)
 
-    tdc_history = {}
-    tdc_histos = {}
-    adc_histos = {}
     adc_max = config["TDCFitting"]["adc_max"]
     adc_min = config["TDCFitting"]["adc_min"]
     adc_bins = config["TDCFitting"]["adc_bins"]
@@ -46,19 +48,25 @@ def main():
     tdc_range = np.linspace(tdc_min, tdc_max, tdc_bins + 1)
     active_tdcs = np.unique(tdc_ids)
 
+    tdc_history = {}
+    tdc_histos = {}
+    adc_histos = {}
     for tdc_id in active_tdcs:
         tdc_history[tdc_id] = {}
         tdc_histos[tdc_id] = {}
         adc_histos[tdc_id] = {}
-        tdc_histos[tdc_id]["All Channels"] = tdcFitter.getHisto(
+
+        tdc_history[tdc_id]["All_Channels"] = {"t0": 0, "tmax": 0}
+        tdc_histos[tdc_id]["All_Channels"] = tdcFitter.getHisto(
             tdc_id, tdc_ids, tdc_times, tdc_range
         )
-        adc_histos[tdc_id]["All Channels"] = tdcFitter.getHisto(
+        adc_histos[tdc_id]["All_Channels"] = tdcFitter.getHisto(
             tdc_id, tdc_ids, adc_times, adc_range
         )
         active_channels = np.unique(tdc_channels[tdc_ids == tdc_id])
+
         for channel in active_channels:
-            tdc_history[tdc_id][channel] = {"t0": [], "tmax": []}
+            tdc_history[tdc_id][channel] = {"t0": 0, "tmax": 0}
             tdc_histos[tdc_id][channel] = tdcFitter.getHisto(
                 tdc_id, tdc_ids, tdc_times, tdc_range, channel, tdc_channels
             )
@@ -66,35 +74,46 @@ def main():
                 tdc_id, tdc_ids, adc_times, adc_range, channel, tdc_channels
             )
 
+    # PLOT HISTOS HERE
+
+    # CALCUATE TDC CALIBRATION
     for i in range(max_iter):
         tdc_histos = {}
-        tdc_range = np.linspace(0, 1000, 51 + int(50 * i / max_iter))
+        tdc_range = np.linspace(tdc_min, tdc_max, 51 + int(50 * i / max_iter))
         for tdc_id in active_tdcs:
             tdc_histos[tdc_id] = {}
-            tdc_histos[tdc_id]["All Channels"] = tdcFitter.getHisto(
+            tdc_histos[tdc_id]["All_Channels"] = tdcFitter.getHisto(
                 tdc_id, tdc_ids, tdc_times, tdc_range
             )
+
+            bin_centers = tdc_histos[tdc_id]["All_Channels"][1]
+            counts = tdc_histos[tdc_id]["All_Channels"][0]
+            t0 = tdcFitter.fitT0(counts, bin_centers, n_steps=1000)
+            tmax = tdcFitter.fitTMax(counts, bin_centers, n_steps=1000)
+
+            tdc_history[tdc_id]["All_Channels"]["t0"] += t0
+            tdc_history[tdc_id]["All_Channels"]["tmax"] += tmax
+
             active_channels = np.unique(tdc_channels[tdc_ids == tdc_id])
             for channel in active_channels:
                 tdc_histos[tdc_id][channel] = tdcFitter.getHisto(
                     tdc_id, tdc_ids, tdc_times, tdc_range, channel, tdc_channels
                 )
+                bin_centers = tdc_histos[tdc_id][channel][1]
+                counts = tdc_histos[tdc_id][channel][0]
 
-    for tdc_id in active_tdcs:
-        for key in tdc_histos[tdc_id]:
-            bin_centers = tdc_histos[tdc_id][key][1]
-            counts = tdc_histos[tdc_id][key][0]
-            t0 = tdcFitter.fitT0(counts, bin_centers, n_steps=10000)
-            tmax = tdcFitter.fitTMax(counts, bin_centers, n_steps=10000)
-            tdc_history[tdc_id][key]["t0"].append(t0)
-            tdc_history[tdc_id][key]["tmax"].append(tmax)
+                t0 = tdcFitter.fitT0(counts, bin_centers, n_steps=1000)
+                tmax = tdcFitter.fitTMax(counts, bin_centers, n_steps=1000)
 
-    for tdc_id in active_tdcs:
-        for key in tdc_histos[tdc_id]:
-            tdc_history[tdc_id][key]["t0"] = np.mean(tdc_history[tdc_id][key]["t0"])
-            tdc_history[tdc_id][key]["tmax"] = np.mean(tdc_history[tdc_id][key]["tmax"])
+                tdc_history[tdc_id][channel]["t0"] += t0
+                tdc_history[tdc_id][channel]["tmax"] += tmax
 
-    output_dir = f"../output/{config['General']['run_name']}"
+    for _tdc_id, channels in tdc_history.items():
+        for _channel, values in channels.items():
+            values["t0"] /= max_iter
+            values["tmax"] /= max_iter
+
+    output_dir = f"{script_dir}/../output/{config['General']['run_name']}"
     os.makedirs(output_dir, exist_ok=True)
     np.save(f"{output_dir}/tdc_calibration.npy", tdc_history)
 
