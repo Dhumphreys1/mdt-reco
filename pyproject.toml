@@ -23,7 +23,7 @@ dev = [
     "pre-commit"
 ]
 test = [
-    "nox"
+    "pytest>7"
 ]
 
 [project.scripts]
