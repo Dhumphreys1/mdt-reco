@@ -1,12 +1,9 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
-build/
-output/
-raw_data/
-dist/
 wheels/
 *.egg-info
+*.pkl
 
 # Virtual environments
 .venv
@@ -20,3 +17,12 @@ wheels/
 
 # Text files
 *.txt
+
+# User-specific Directories
+build/
+output/
+raw_data/
+dist/
+
+# junk in src/mdt_reco
+src/mdt_reco/*.sh
