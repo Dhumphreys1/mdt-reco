@@ -22,7 +22,10 @@ dependencies = [
 dev = [
     "ipykernel",
     "pre-commit"
-    ]
+]
+test = [
+    "nox"
+]
 
 [project.scripts]
 mdt-reco = "mdt_reco:main"
