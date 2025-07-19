@@ -14,8 +14,7 @@ dependencies = [
     "numba",
     "argparse",
     "mplhep",
-    "scipy",
-    "pickle"
+    "scipy"
 ]
 
 [dependency-groups]
