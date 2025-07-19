@@ -8,10 +8,6 @@ import argparse
 from numpy.polynomial.chebyshev import Chebyshev
 from scipy.ndimage import center_of_mass
 
-#from .Geometry import Chamber
-#from .TrackFitter import TrackFitter
-#from .Event import Event
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.normpath(os.path.join(script_dir, '../data/events_10k.npy'))
 data = np.load(data_path, allow_pickle=True)
@@ -34,7 +30,6 @@ def main():
         empty_event = mdt_reco.event()
         empty_event['tdc_id'] = event['tdc'].astype(np.uint8)
         empty_event['channel'] = event['channel'].astype(np.uint8)
-#       empty_event['drift_time'] = event['drift_time'].astype(np.float32)
         empty_event['tdc_time'] = event['tdc_time'].astype(np.float32)
         empty_event['drift_time'] = ((event['tdc_time'] - 70)/830).astype(np.float32)
         empty_event['x'] = event['x'].astype(np.float32)
@@ -61,10 +56,6 @@ def main():
             time = event["drift_time"]
             distances = np.concatenate((distances, dist))
             times = np.concatenate((times, time))
-#           if event_num == 127:
-#                event.drawTrack(chamber, save=True, file_dir="./figures", file_name=f"debug_it_{iteration}_ev_{event_num}")
-#                print(f"Dist : {dist}")
-#                print(f"Time : {time}")
 
         fig, ax = plt.subplots()
         H, xedges, yedges = np.histogram2d(times, distances, bins=50)
@@ -105,14 +96,6 @@ def main():
         filtered_y = np.array(filtered_y)
         ax.scatter(filtered_x, filtered_y, s=8, color='cyan', alpha=0.6, label='Filtered ridge points')
 
-        # fit Chebyshev polynomials
-#       degree = 4
-#       cheb_fit = Chebyshev.fit(filtered_x, filtered_y, degree)
-#       x_fit = np.linspace(0, max(filtered_x), 200)
-#       def fit_with_constraint(x): # y(0) = 0
-#           return cheb_fit(x) - cheb_fit(0)
-#       y_fit = fit_with_constraint(x_fit)
-
         degree = config["RTFitter"]["degree"]
         coeff = np.polyfit(filtered_x, filtered_y, degree)
         file_name = f"/rt_coefficients_degree_{degree}.npy"
@@ -131,12 +114,9 @@ def main():
 
         for event_num, event in enumerate(events): # set the drift radius for the next iteration
             drift_time = event["drift_time"]
-#           print(f"Iteration {iteration} / {iterations - 1}")
             drift_radius = poly(drift_time)
             drift_radius = np.float32(drift_radius)
             event["drift_radius"] = drift_radius
- #          if event_num == 127:
- #              print(f"Drift radius : {drift_radius}")
     return 0
 
 if __name__ == "__main__":
