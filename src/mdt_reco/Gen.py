@@ -87,12 +87,6 @@ class Generator:
             track_params["C"].append(C)
         return track_params
 
-        # trajectories = []
-        # for event in sim_events:
-        #     trajectory = self.findTrajectory(B, event)
-        #     trajectories.append(trajectory)
-        # return trajectories
-
     def driftTime(self, drift_rad):
         return 3 * drift_rad.astype(np.float32)  # Drift time in ns
 
