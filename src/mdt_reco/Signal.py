@@ -146,8 +146,9 @@ class Signal:
         mode = 1
         tdc_data += self.convertIntToBits(mode, 2)
         lEdge = int(
-            np.ceil((event["tdc_time"][index] + trigger_time)
-            * (1 / self._cycles_to_time))
+            np.ceil(
+                (event["tdc_time"][index] + trigger_time) * (1 / self._cycles_to_time)
+            )
         )
         tdc_data += self.convertIntToBits(lEdge, 17)
         width = int(event["adc_time"][index])
@@ -437,7 +438,7 @@ class Signal:
         if self._config["Signal"]["DataType"] == "Phase2":
             # Find the headers
             header_locations = self.findHeaders(binary_file)
-
+            print(f"Found {len(header_locations)} headers in the file.")
             with open(binary_file, "rb") as b_file:
                 bytes = b_file.read(self._header_length)
                 counter = 0
@@ -501,6 +502,8 @@ class Signal:
                     ):
                         event_object = self.accumulateEvents(event)
                         events.append(event_object)
+                        if len(events) % 1000 == 0:
+                            print(f"Decoded {len(events)} events so far.")
             return events
         msg = f"Data format is {self.data_format} is not supported."
         raise NotImplementedError(msg)

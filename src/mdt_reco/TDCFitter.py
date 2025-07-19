@@ -59,10 +59,11 @@ def _tmax_objective(time_counts, time_centers, min_time, max_time, tmax):
 
     idx = np.searchsorted(time_centers, tmax)
     running_bins = int(len(time_counts) / 10)
-    window = time_counts[idx - running_bins : idx]
-
+    min_index = max(0, idx - running_bins)
+    window = time_counts[min_index:idx]
     for i in range(len(window)):
         amplitude += window[i]
+
     amplitude /= len(window)
 
     center_half_width = 0.5 * (time_centers[1] - time_centers[0])
