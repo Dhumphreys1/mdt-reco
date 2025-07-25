@@ -40,3 +40,7 @@ Geometry:
       material:
         type: "Aluminum"
         thickness: 0.4 #mm
+
+RTFitter:
+    degree: 4
+    iterations: 10
