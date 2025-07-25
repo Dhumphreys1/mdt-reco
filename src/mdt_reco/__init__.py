@@ -5,6 +5,7 @@ from .Geometry import Chamber
 from .Signal import Signal
 from .TDCFitter import TDCFitter
 from .TrackFitter import TrackFitter
+from .RTFitter import RTFitter
 
 configParser = ConfigParser
 geo = Chamber
@@ -13,3 +14,4 @@ gen = Generator
 trackFitter = TrackFitter
 signal = Signal
 tdcFitter = TDCFitter
+rtFitter = RTFitter

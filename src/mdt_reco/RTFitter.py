@@ -20,7 +20,6 @@ def filter_ridge_points(H, xcenters, ycenters):
         if total == 0:
             continue
 
-        # Can't use center_of_mass here — return index of max bin as proxy
         max_idx = np.argmax(column)
         y_val = ycenters[max_idx]
 
@@ -37,16 +36,21 @@ def evaluate_poly(coeff, x):
     return y
 
 class RTFitter:
-    def __init__(self, config_path):
+    def __init__(self, config_path, data=None):
         self.config = mdt_reco.configParser(config_path)
         self.chamber = mdt_reco.geo(self.config)
-        self.data = self._load_data()
+#        self.data = self._load_data()
         self.output_dir = f"../output/{self.config['General']['run_name']}"
         self.figure_dir = os.path.join(self.output_dir, "figures")
         os.makedirs(self.figure_dir, exist_ok=True)
         self.iterations = self.config["RTFitter"]["iterations"]
         self.degree = self.config["RTFitter"]["degree"]
-        self.events = self._prepare_events()
+#        self.events = self._prepare_events()
+
+        if data is not None:
+            self.events = data
+        else:
+            raise ValueError
 
     def _load_data(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
