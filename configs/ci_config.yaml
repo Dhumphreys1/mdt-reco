@@ -1,20 +1,32 @@
 General:
   run_name: "CI_test_run"
-
+  input_file: "sim_events_100000"
 
 Signal:
   DataType: Phase2
 Reconstruction:
   MaxHits: 12
   MinHits: 6
-
+TDCFitting:
+  max_iterations: 100
+  tdc_max: 1000 #ns
+  tdc_min: 0 #ns
+  tdc_bins: 200
+  adc_max: 300 #ns
+  adc_min: 0 #ns
+  adc_bins: 50
 Simulator:
   tdc_time_delay: 70 #ns
   tdc_time_sigma: 10 #ns
   pulse_width_mean: 200 #ns
   pulse_width_sigma: 25 #ns
-  nevents: 10  # Number of events to simulate
-
+  min_energy: 10.0 #GeV
+  max_energy: 1000.0 #GeV
+  max_angle: 0.5 #radians
+  nevents: 100000  # Number of events to simulate
+RTFitter:
+  iterations: 10
+  degree: 10
 Geometry:
   multilayer_spacing: 6.536 #mm
   multilayers:

@@ -1,22 +1,43 @@
 import argparse
-import mdt_reco
-import numpy as np
 import os
+import pickle
+
+import mdt_reco
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config")
-    parser.add_argument("events")
-    parser.add_argument("file")
+    parser.add_argument(
+        "--config", type=str, required=True, help="Path to the configuration file"
+    )
+    parser.add_argument(
+        "--input_name",
+        type=str,
+        required=True,
+        help="Path to the events file to encode",
+    )
+    parser.add_argument(
+        "--output_name",
+        type=str,
+        required=True,
+        help="Output file name for encoded events",
+    )
     args = parser.parse_args()
-    config_path = args.config
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, "../configs", args.config)
     config = mdt_reco.configParser(config_path)
     signal_object = mdt_reco.Signal(config)
-    events = np.load(args.events, allow_pickle=True)
-    output_dir = "../raw_data"
-    os.makedirs(output_dir, exist_ok = True)
-    output_file = f"{output_dir}/{args.file}"
+
+    with open(args.input_name, "rb") as f:
+        events = pickle.load(f)
+
+    output_dir = f"{script_dir}/../raw_data"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = f"{output_dir}/{args.output_name}.bin"
     signal_object.encodeEvents(events, output_file)
+    print(f"Encoded events saved to {output_file}")
+
 
 if __name__ == "__main__":
     main()

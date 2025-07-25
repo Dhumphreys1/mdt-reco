@@ -5,9 +5,10 @@ from numba import njit
 def getInitialT0(time_counts, time_centers):
     threshold = time_counts.max() / 10
     nonzero_indices = np.where(time_counts > threshold)[0]
-
     if nonzero_indices.size > 0:
         return time_centers[nonzero_indices[1]]
+    msg = "No valid T0 found in time counts."
+    raise ValueError(msg)
 
 
 def getInitialTMax(time_counts, time_centers):
@@ -15,6 +16,8 @@ def getInitialTMax(time_counts, time_centers):
     nonzero_indices = np.where(time_counts > threshold)[0]
     if nonzero_indices.size > 0:
         return time_centers[nonzero_indices[-2]]
+    msg = "No valid TMax found in time counts."
+    raise ValueError(msg)
 
 
 @njit
@@ -56,10 +59,11 @@ def _tmax_objective(time_counts, time_centers, min_time, max_time, tmax):
 
     idx = np.searchsorted(time_centers, tmax)
     running_bins = int(len(time_counts) / 10)
-    window = time_counts[idx - running_bins : idx]
-
+    min_index = max(0, idx - running_bins)
+    window = time_counts[min_index:idx]
     for i in range(len(window)):
         amplitude += window[i]
+
     amplitude /= len(window)
 
     center_half_width = 0.5 * (time_centers[1] - time_centers[0])
@@ -220,3 +224,5 @@ class TDCFitter:
             counts, bin_edges = np.histogram(times_for_id, bins=time_binning)
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
             return counts.astype(np.int32), bin_centers.astype(np.float32)
+        msg = f"Empty Histogram for TDC ID: {tdc_id}, Channel: {tdc_channel}"
+        raise ValueError(msg)

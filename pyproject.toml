@@ -14,13 +14,17 @@ dependencies = [
     "numba",
     "argparse",
     "mplhep",
+    "scipy"
 ]
 
 [dependency-groups]
 dev = [
     "ipykernel",
     "pre-commit"
-    ]
+]
+test = [
+    "nox"
+]
 
 [project.scripts]
 mdt-reco = "mdt_reco:main"
@@ -57,8 +61,13 @@ extend-select = [
 extend-ignore = [
     "PTH123",  # Prefer Path.open()
     "PTH122",  # Prefer Path.suffix, Path.stem, etc.
+    "PTH120",  # I'm about to look up the path wildcard ignore
     "PTH118",  # Prefer Path / operator over os.path.join
+    "PTH110",  # os bestest
+    "PTH103",  # Path is stupid
+    "PTH100",  # Path and I are about to fight
     "PLR0913", # Too many arguments in function (from pylint rules)
+    "T201",    # One day I'll learn to use logging
     "NPY002",  # replace legacy functions
 ]
 
